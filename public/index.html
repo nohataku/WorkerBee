@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tasker - 複数人対応タスク管理</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+</head>
+<body>
+    <!-- ローディング画面 -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-spinner">
+            <i class="fas fa-tasks fa-3x"></i>
+            <h2>Tasker</h2>
+            <div class="spinner"></div>
+        </div>
+    </div>
+
+    <!-- ログイン・登録画面 -->
+    <div id="authContainer" class="auth-container" style="display: none;">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1><i class="fas fa-tasks"></i> Tasker</h1>
+                <p>複数人で効率的にタスク管理</p>
+            </div>
+
+            <!-- ログインフォーム -->
+            <div id="loginForm" class="auth-form active">
+                <h2>ログイン</h2>
+                <form id="loginFormElement">
+                    <div class="form-group">
+                        <label for="loginEmail">メールアドレス</label>
+                        <input type="email" id="loginEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">パスワード</label>
+                        <input type="password" id="loginPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-sign-in-alt"></i> ログイン
+                    </button>
+                </form>
+                <p class="auth-switch">
+                    アカウントをお持ちでない方は
+                    <a href="#" id="showRegister">こちらから登録</a>
+                </p>
+            </div>
+
+            <!-- 登録フォーム -->
+            <div id="registerForm" class="auth-form">
+                <h2>新規登録</h2>
+                <form id="registerFormElement">
+                    <div class="form-group">
+                        <label for="registerUsername">ユーザー名</label>
+                        <input type="text" id="registerUsername" required minlength="3" maxlength="30">
+                        <small>3-30文字の英数字、アンダースコア、ハイフン</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerEmail">メールアドレス</label>
+                        <input type="email" id="registerEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerDisplayName">表示名</label>
+                        <input type="text" id="registerDisplayName" required maxlength="50">
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword">パスワード</label>
+                        <input type="password" id="registerPassword" required minlength="6">
+                        <small>6文字以上</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerConfirmPassword">パスワード確認</label>
+                        <input type="password" id="registerConfirmPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i> 登録
+                    </button>
+                </form>
+                <p class="auth-switch">
+                    既にアカウントをお持ちの方は
+                    <a href="#" id="showLogin">こちらからログイン</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- メインアプリケーション -->
+    <div id="appContainer" class="app-container" style="display: none;">
+        <!-- ヘッダー -->
+        <header class="app-header">
+            <div class="header-left">
+                <h1><i class="fas fa-tasks"></i> Tasker</h1>
+            </div>
+            <div class="header-center">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="タスクを検索...">
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="notification-bell">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notificationBadge" style="display: none;"></span>
+                </div>
+                <div class="user-menu">
+                    <div class="user-avatar" id="userAvatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="dropdown-menu" id="userDropdown">
+                        <div class="user-info">
+                            <div class="user-name" id="userName"></div>
+                            <div class="user-email" id="userEmail"></div>
+                        </div>
+                        <hr>
+                        <a href="#" id="profileBtn"><i class="fas fa-user-cog"></i> プロフィール</a>
+                        <a href="#" id="settingsBtn"><i class="fas fa-cog"></i> 設定</a>
+                        <hr>
+                        <a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> ログアウト</a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- サイドバー -->
+        <aside class="sidebar">
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-view="dashboard">
+                    <i class="fas fa-home"></i> ダッシュボード
+                </a>
+                <a href="#" class="nav-item" data-view="tasks">
+                    <i class="fas fa-tasks"></i> タスク
+                </a>
+                <a href="#" class="nav-item" data-view="calendar">
+                    <i class="fas fa-calendar"></i> カレンダー
+                </a>
+                <a href="#" class="nav-item" data-view="projects">
+                    <i class="fas fa-folder"></i> プロジェクト
+                </a>
+                <a href="#" class="nav-item" data-view="team">
+                    <i class="fas fa-users"></i> チーム
+                </a>
+            </nav>
+        </aside>
+
+        <!-- メインコンテンツ -->
+        <main class="main-content">
+            <!-- ダッシュボード -->
+            <div id="dashboardView" class="view active">
+                <div class="view-header">
+                    <h2>ダッシュボード</h2>
+                    <div class="view-actions">
+                        <button class="btn btn-primary" id="addTaskBtn">
+                            <i class="fas fa-plus"></i> 新しいタスク
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 統計カード -->
+                <div class="stats-grid">
+                    <div class="stats-card">
+                        <div class="stats-icon">
+                            <i class="fas fa-list-ul"></i>
+                        </div>
+                        <div class="stats-info">
+                            <div class="stats-number" id="totalTasks">0</div>
+                            <div class="stats-label">総タスク数</div>
+                        </div>
+                    </div>
+                    <div class="stats-card">
+                        <div class="stats-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stats-info">
+                            <div class="stats-number" id="completedTasks">0</div>
+                            <div class="stats-label">完了済み</div>
+                        </div>
+                    </div>
+                    <div class="stats-card">
+                        <div class="stats-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stats-info">
+                            <div class="stats-number" id="pendingTasks">0</div>
+                            <div class="stats-label">未完了</div>
+                        </div>
+                    </div>
+                    <div class="stats-card">
+                        <div class="stats-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="stats-info">
+                            <div class="stats-number" id="overdueTasks">0</div>
+                            <div class="stats-label">期限切れ</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 最近のタスク -->
+                <div class="dashboard-section">
+                    <h3>最近のタスク</h3>
+                    <div id="recentTasks" class="task-list">
+                        <!-- 動的に追加 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- タスク一覧 -->
+            <div id="tasksView" class="view">
+                <div class="view-header">
+                    <h2>タスク</h2>
+                    <div class="view-actions">
+                        <div class="filter-group">
+                            <select id="statusFilter">
+                                <option value="all">すべて</option>
+                                <option value="pending">未完了</option>
+                                <option value="completed">完了済み</option>
+                            </select>
+                            <select id="priorityFilter">
+                                <option value="">優先度</option>
+                                <option value="low">低</option>
+                                <option value="medium">中</option>
+                                <option value="high">高</option>
+                                <option value="urgent">緊急</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" id="addTaskBtn2">
+                            <i class="fas fa-plus"></i> 新しいタスク
+                        </button>
+                    </div>
+                </div>
+
+                <div id="tasksList" class="task-list">
+                    <!-- 動的に追加 -->
+                </div>
+
+                <div id="tasksEmpty" class="empty-state" style="display: none;">
+                    <i class="fas fa-clipboard-list"></i>
+                    <h3>タスクがありません</h3>
+                    <p>新しいタスクを作成してみましょう</p>
+                </div>
+            </div>
+
+            <!-- その他のビュー（プレースホルダー） -->
+            <div id="calendarView" class="view">
+                <div class="view-header">
+                    <h2>カレンダー</h2>
+                </div>
+                <p>カレンダービューは今後実装予定です。</p>
+            </div>
+
+            <div id="projectsView" class="view">
+                <div class="view-header">
+                    <h2>プロジェクト</h2>
+                </div>
+                <p>プロジェクト管理機能は今後実装予定です。</p>
+            </div>
+
+            <div id="teamView" class="view">
+                <div class="view-header">
+                    <h2>チーム</h2>
+                </div>
+                <p>チーム管理機能は今後実装予定です。</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- タスク作成/編集モーダル -->
+    <div id="taskModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="taskModalTitle">新しいタスク</h3>
+                <button class="modal-close" id="taskModalClose">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="taskForm">
+                <div class="form-group">
+                    <label for="taskTitle">タイトル *</label>
+                    <input type="text" id="taskTitle" required maxlength="200">
+                </div>
+                <div class="form-group">
+                    <label for="taskDescription">説明</label>
+                    <textarea id="taskDescription" maxlength="1000"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="taskPriority">優先度</label>
+                        <select id="taskPriority">
+                            <option value="low">低</option>
+                            <option value="medium" selected>中</option>
+                            <option value="high">高</option>
+                            <option value="urgent">緊急</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskDueDate">期限</label>
+                        <input type="datetime-local" id="taskDueDate">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="taskAssignedTo">担当者</label>
+                    <div class="user-search">
+                        <input type="text" id="taskAssignedTo" placeholder="ユーザーを検索...">
+                        <div class="user-search-results" id="userSearchResults"></div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="taskModalCancel">キャンセル</button>
+                    <button type="submit" class="btn btn-primary" id="taskModalSave">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 通知エリア -->
+    <div id="notifications" class="notifications"></div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
