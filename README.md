@@ -106,6 +106,53 @@ WorkerBee/
         └── app.js         # フロントエンドJavaScript
 ```
 
+## 📂 プロジェクト構造 (2025年7月更新)
+
+### フロントエンド構造
+```
+public/
+├── js/
+│   ├── api/
+│   │   └── ApiClient.js          # API通信のラッパークラス
+│   ├── managers/
+│   │   ├── AuthManager.js        # 認証管理
+│   │   ├── TaskManager.js        # タスク管理
+│   │   ├── UIManager.js          # UI制御
+│   │   ├── EventManager.js       # イベント管理
+│   │   ├── NotificationManager.js# 通知管理
+│   │   └── SocketManager.js      # WebSocket通信管理
+│   ├── utils/
+│   │   ├── PasswordUtils.js      # パスワード暗号化
+│   │   └── TaskUtils.js          # タスク関連ユーティリティ
+│   ├── WorkerBeeApp.js           # メインアプリケーションクラス
+│   └── app.js.backup             # 旧バージョン（参考用）
+├── css/
+│   └── styles.css                # スタイルシート
+└── index.html                    # メインHTMLファイル
+```
+
+### バックエンド構造
+```
+./
+├── server.js                     # Express.jsメインサーバー
+├── routes/
+│   ├── auth.js                   # 認証API
+│   ├── tasks.js                  # タスクAPI
+│   └── users.js                  # ユーザーAPI
+├── middleware/
+│   └── auth.js                   # 認証ミドルウェア
+└── services/
+    └── gasService.js             # Google Apps Script連携
+```
+
+### 📋 **コード分割の利点**
+
+1. **可読性向上**: 各機能が独立したファイルに分離され、理解しやすい
+2. **保守性向上**: 特定の機能を修正する際、該当ファイルのみ編集すればよい
+3. **再利用性**: 各マネージャークラスは独立しており、他のプロジェクトでも再利用可能
+4. **テスト容易性**: 各クラスを個別にテストできる
+5. **チーム開発**: 複数の開発者が異なるファイルを同時に編集可能
+
 ## 🎯 使い方
 
 ### 1. アカウント作成
