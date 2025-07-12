@@ -62,6 +62,7 @@ class UIManager {
         try {
             const tasks = this.taskManager.getTasks();
             const user = this.authManager.getUser();
+            const allUsers = this.taskManager.getAllUsers();
             const container = document.getElementById('tasksList');
             const emptyState = document.getElementById('tasksEmpty');
             
@@ -79,10 +80,10 @@ class UIManager {
             container.style.display = 'block';
             emptyState.style.display = 'none';
             
-            // タスクHTMLを生成
+            // タスクHTMLを生成（allUsersを渡す）
             container.innerHTML = tasks.map(task => {
                 try {
-                    return TaskUtils.createTaskHTML(task, user);
+                    return TaskUtils.createTaskHTML(task, user, allUsers);
                 } catch (error) {
                     console.error('Error creating task HTML:', error, task);
                     return `<div class="task-item error">タスクの表示でエラーが発生しました: ${task?.title || 'Unknown'}</div>`;
@@ -102,6 +103,7 @@ class UIManager {
 
     renderRecentTasks(tasks) {
         const user = this.authManager.getUser();
+        const allUsers = this.taskManager.getAllUsers();
         const container = document.getElementById('recentTasks');
         
         if (!container) {
@@ -114,7 +116,7 @@ class UIManager {
             return;
         }
         
-        container.innerHTML = tasks.map(task => TaskUtils.createTaskHTML(task, user)).join('');
+        container.innerHTML = tasks.map(task => TaskUtils.createTaskHTML(task, user, allUsers)).join('');
         
         console.log('Recent tasks rendered:', tasks.length, 'items');
     }

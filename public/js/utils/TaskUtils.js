@@ -45,7 +45,7 @@ class TaskUtils {
         };
     }
 
-    static createTaskHTML(task, currentUser) {
+    static createTaskHTML(task, currentUser, allUsers = []) {
         try {
             // タスクデータの検証
             if (!task || !task._id) {
@@ -60,6 +60,7 @@ class TaskUtils {
             let assigneeInitials = '';
             let assigneeName = '未割り当て';
             
+            // まず、task.assignedToから直接取得を試行
             if (task.assignedTo && task.assignedTo.displayName) {
                 assigneeName = task.assignedTo.displayName;
                 assigneeInitials = assigneeName
@@ -67,6 +68,30 @@ class TaskUtils {
                     .map(name => name[0])
                     .join('')
                     .toUpperCase();
+            } 
+            // task.assignedToがIDの場合、allUsersから該当ユーザーを検索
+            else if (task.assignedTo && typeof task.assignedTo === 'string' && allUsers.length > 0) {
+                const assignedUser = allUsers.find(user => user._id === task.assignedTo || user.email === task.assignedTo);
+                if (assignedUser) {
+                    assigneeName = assignedUser.displayName || assignedUser.username || assignedUser.email || '不明';
+                    assigneeInitials = assigneeName
+                        .split(' ')
+                        .map(name => name[0])
+                        .join('')
+                        .toUpperCase();
+                }
+            }
+            // task.assignedTo._idの場合、allUsersから該当ユーザーを検索
+            else if (task.assignedTo && task.assignedTo._id && allUsers.length > 0) {
+                const assignedUser = allUsers.find(user => user._id === task.assignedTo._id || user.email === task.assignedTo.email);
+                if (assignedUser) {
+                    assigneeName = assignedUser.displayName || assignedUser.username || assignedUser.email || '不明';
+                    assigneeInitials = assigneeName
+                        .split(' ')
+                        .map(name => name[0])
+                        .join('')
+                        .toUpperCase();
+                }
             }
 
             // createdByの安全な処理と権限チェック

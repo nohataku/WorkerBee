@@ -251,7 +251,11 @@ class EventManager {
 
     async handleTaskLoad() {
         try {
-            await this.taskManager.loadTasks();
+            // タスクとユーザー情報を並行して読み込み
+            await Promise.all([
+                this.taskManager.loadTasks(),
+                this.taskManager.loadAllUsers()
+            ]);
             this.uiManager.renderTasks();
         } catch (error) {
             console.error('Error loading tasks:', error);
@@ -262,7 +266,8 @@ class EventManager {
         try {
             const [stats, recentTasks] = await Promise.all([
                 this.taskManager.loadStats(),
-                this.taskManager.loadRecentTasks()
+                this.taskManager.loadRecentTasks(),
+                this.taskManager.loadAllUsers() // ユーザー情報も同時に読み込み
             ]);
             
             this.uiManager.updateStatsDisplay(stats);
