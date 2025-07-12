@@ -1,5 +1,5 @@
 {
-  "name": "tasker-multi-user",
+  "name": "workerbee-multi-user",
   "version": "1.0.0",
   "description": "複数人対応タスク管理アプリ",
   "main": "server.js",
@@ -13,9 +13,9 @@
     "management",
     "collaborative",
     "nodejs",
-    "mongodb"
+    "google-apps-script"
   ],
-  "author": "Tasker Team",
+  "author": "WorkerBee Team",
   "license": "MIT",
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -26,9 +26,8 @@
     "express-validator": "^7.0.1",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
-    "mongodb": "^6.17.0",
-    "mongoose": "^8.0.3",
-    "socket.io": "^4.7.4"
+    "socket.io": "^4.7.4",
+    "axios": "^1.6.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

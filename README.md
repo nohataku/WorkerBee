@@ -1,4 +1,4 @@
-# Tasker - 複数人対応タスク管理アプリ
+# WorkerBee - 複数人対応タスク管理アプリ
 
 複数人でリアルタイムに協力してタスク管理ができる、パソコンに詳しくない方でも簡単に使えるWebアプリケーションです。
 
@@ -11,10 +11,10 @@
 - チーム全体のタスク管理
 
 ### 💾 **データベース管理**
-- MongoDB によるクラウドデータベース
+- Google Spreadsheet + Apps Script によるクラウドデータベース
 - ユーザー情報とタスクデータの永続化
 - セキュアな認証システム（JWT）
-- データの整合性とバックアップ
+- Googleアカウントによる安全なデータ管理
 
 ### 🎨 **美しいユーザーインターフェース**
 - モダンでレスポンシブなデザイン
@@ -26,13 +26,13 @@
 - タスクの優先度設定
 - 期限管理と期限切れアラート
 - 検索・フィルタリング機能
-- 履歴追跡とコメント機能
+- リアルタイム同期
 
 ## 🚀 セットアップ
 
 ### 必要な環境
 - Node.js (v14以上)
-- MongoDB (ローカルまたはMongoDB Atlas)
+- Googleアカウント（スプレッドシート・Apps Script用）
 - 現代的なWebブラウザ
 
 ### インストール手順
@@ -40,7 +40,7 @@
 1. **リポジトリのクローン**
 ```bash
 git clone <repository-url>
-cd tasker
+cd workerbee
 ```
 
 2. **依存関係のインストール**
@@ -48,11 +48,17 @@ cd tasker
 npm install
 ```
 
+3. **Google Apps Script の設定**
+   - 新しいGoogleスプレッドシートを作成
+   - `Tasks` と `Users` のシートを作成
+   - Apps Scriptをウェブアプリとしてデプロイ
+   - サービス内の GAS URL を更新
+   
+   詳細は `services/gasService.js` のコメントを参照
+
 3. **環境変数の設定**
 `.env` ファイルを編集して、以下の項目を設定：
 ```env
-# MongoDB接続URL（ローカル開発用）
-MONGODB_URI=mongodb://127.0.0.1:27017/tasker-multi
 
 # JWT秘密鍵（本番環境では安全な値に変更）
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
@@ -61,15 +67,7 @@ JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 PORT=3000
 ```
 
-4. **MongoDBの起動**
-```bash
-# ローカルMongoDBを使用する場合
-mongod
-
-# または MongoDB Atlas を使用する場合は、.env ファイルでMONGODB_URIを設定
-```
-
-5. **サーバーの起動**
+4. **サーバーの起動**
 ```bash
 # 開発モード
 npm run dev
@@ -78,7 +76,7 @@ npm run dev
 npm start
 ```
 
-6. **ブラウザでアクセス**
+5. **ブラウザでアクセス**
 ```
 http://localhost:3000
 ```
@@ -86,7 +84,7 @@ http://localhost:3000
 ## 📁 プロジェクト構成
 
 ```
-tasker/
+WorkerBee/
 ├── server.js              # メインサーバーファイル
 ├── package.json           # プロジェクト設定と依存関係
 ├── .env                   # 環境変数設定
@@ -136,8 +134,6 @@ tasker/
 ### バックエンド
 - **Node.js** - サーバーランタイム
 - **Express.js** - Webアプリケーションフレームワーク
-- **MongoDB** - NoSQLデータベース
-- **Mongoose** - MongoDB ODM
 - **Socket.IO** - リアルタイム通信
 - **JWT** - 認証トークン
 - **bcryptjs** - パスワードハッシュ化
@@ -185,15 +181,6 @@ tasker/
 
 ## 🐛 トラブルシューティング
 
-### MongoDB接続エラー
-```bash
-# MongoDBサービスが起動していることを確認
-sudo systemctl status mongod
-
-# または手動で起動
-sudo systemctl start mongod
-```
-
 ### ポートが使用中
 ```bash
 # 別のポートを使用
@@ -221,8 +208,8 @@ npm install
 
 ## 👨‍💻 開発者
 
-- GitHub: [@username](https://github.com/username)
-- Email: your.email@example.com
+- GitHub: [@nohataku](https://github.com/nohataku)
+- Email: nohara.takuto@zequt.com
 
 ---
 

@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const gasService = require('../services/gasService');
 
 const auth = async (req, res, next) => {
     try {
@@ -15,17 +15,22 @@ const auth = async (req, res, next) => {
         const token = authHeader.substring(7);
 
         try {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            const user = await User.findById(decoded.userId).select('-password');
+            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'workerbee_secret_key');
+            
+            // GASからユーザー情報を取得
+            const users = await gasService.getUsers();
+            const user = users.find(u => u.id === decoded.userId);
 
-            if (!user || !user.isActive) {
+            if (!user) {
                 return res.status(401).json({
                     success: false,
                     message: '無効なトークンです'
                 });
             }
 
-            req.user = user;
+            // パスワードを除外してreqに設定
+            const { password, ...safeUser } = user;
+            req.user = safeUser;
             next();
 
         } catch (jwtError) {

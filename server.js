@@ -1,5 +1,4 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -21,7 +20,6 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 3000;
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/tasker-multi';
 
 // セキュリティミドルウェア
 app.use(helmet());
@@ -42,15 +40,8 @@ app.use(express.urlencoded({ extended: true }));
 // 静的ファイル
 app.use(express.static('public'));
 
-// MongoDB接続
-mongoose.connect(MONGODB_URI)
-    .then(() => {
-        console.log('✅ MongoDBに接続しました');
-    })
-    .catch((error) => {
-        console.error('❌ MongoDB接続エラー:', error);
-        process.exit(1);
-    });
+// Google Apps Script接続確認
+console.log('✅ Google Apps Scriptサービスを使用します');
 
 // Socket.IOの設定
 io.on('connection', (socket) => {
@@ -105,8 +96,8 @@ app.use('*', (req, res) => {
 
 // サーバー起動
 server.listen(PORT, () => {
-    console.log(`🚀 サーバーが起動しました: http://localhost:${PORT}`);
-    console.log(`📊 MongoDB URI: ${MONGODB_URI}`);
+    console.log(`🚀 WorkerBeeサーバーが起動しました: http://localhost:${PORT}`);
+    console.log(`📊 データストレージ: Google Spreadsheet + Apps Script`);
     console.log(`🌐 環境: ${process.env.NODE_ENV || 'development'}`);
 });
 
@@ -114,7 +105,6 @@ server.listen(PORT, () => {
 process.on('SIGTERM', () => {
     console.log('⚠️  SIGTERMを受信しました。サーバーを終了します...');
     server.close(() => {
-        mongoose.connection.close();
         process.exit(0);
     });
 });
