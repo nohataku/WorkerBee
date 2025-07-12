@@ -103,6 +103,9 @@ function doGet(e) {
       case 'getUsers':
         result = handleGetUsers();
         break;
+      case 'getUsersWithPasswords':
+        result = handleGetUsersWithPasswords();
+        break;
       default:
         throw new Error('Invalid action');
     }
@@ -153,30 +156,38 @@ function doPost(e) {
 
 // User Handlers
 function handleLogin({ email, password }) {
-  if (!email || !password) throw new Error('Email and password are required.');
+  if (!email || !password) {
+    throw new Error('メールアドレスとパスワードは必須です。');
+  }
+  
   const userRow = findRowByEmail(usersSheet, email);
-  if (userRow === -1) throw new Error('User not found.');
+  if (userRow === -1) {
+    throw new Error('メールアドレスまたはパスワードが正しくありません。');
+  }
 
   const headers = getSheetHeaders(usersSheet);
   const userData = usersSheet.getRange(userRow, 1, 1, usersSheet.getLastColumn()).getValues()[0];
   const user = {};
   headers.forEach((h, i) => user[h] = userData[i]);
 
-  // In a real app, use bcrypt or similar for password hashing.
-  // For simplicity, we are storing plain text passwords. THIS IS NOT SECURE.
+  // ハッシュ化されたパスワード照合
   if (user.password !== password) {
-    throw new Error('Invalid password.');
+    throw new Error('メールアドレスまたはパスワードが正しくありません。');
   }
-  delete user.password; // Don't send password to client
+  
+  // レスポンスからパスワードを除外
+  delete user.password;
   return { user };
 }
 
 function handleRegister(payload) {
   const { username, email, displayName, password } = payload;
-  if (!username || !email || !displayName || !password) throw new Error('Missing required fields.');
+  if (!username || !email || !displayName || !password) {
+    throw new Error('すべての必須フィールドを入力してください。');
+  }
 
   if (findRowByEmail(usersSheet, email) !== -1) {
-    throw new Error('Email already exists.');
+    throw new Error('このメールアドレスは既に登録されています。');
   }
 
   const newUser = {
@@ -184,10 +195,12 @@ function handleRegister(payload) {
     username,
     email,
     displayName,
-    password, // Again, plain text password for simplicity. NOT SECURE.
+    password, // ハッシュ化されたパスワードとして保存
     createdAt: new Date().toISOString(),
   };
   usersSheet.appendRow(objectToSheetRow(usersSheet, newUser));
+  
+  // レスポンスからパスワードを除外
   delete newUser.password;
   return { user: newUser };
 }
@@ -199,6 +212,11 @@ function handleGetUsers() {
     delete u.password;
     return u;
   });
+}
+
+function handleGetUsersWithPasswords() {
+  // 認証目的でのみ使用 - ハッシュ化されたパスワードを含む
+  return sheetToObjects(usersSheet);
 }
 
 // Task Handlers

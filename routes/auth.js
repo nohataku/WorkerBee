@@ -45,14 +45,12 @@ router.post('/register', [
 
         const { username, email, password, displayName } = req.body;
 
-        // パスワードをハッシュ化
-        const hashedPassword = await bcrypt.hash(password, 12);
-
-        // GASサービスを使用してユーザー登録
+        // フロントエンドから既にハッシュ化されたパスワードを受信
+        // バックエンドでのbcryptハッシュ化は不要
         const result = await gasService.register({
             username,
             email,
-            password: hashedPassword,
+            password,  // フロントエンドで既にハッシュ化済み
             displayName
         });
 
@@ -108,46 +106,36 @@ router.post('/login', [
 
         const { email, password } = req.body;
 
-        // 全ユーザーを取得して認証を行う
-        const users = await gasService.getUsers();
-        const user = users.find(u => u.email === email);
-
-        if (!user) {
-            return res.status(401).json({
-                success: false,
-                message: 'メールアドレスまたはパスワードが正しくありません'
-            });
-        }
-
-        // パスワード照合
-        const isValidPassword = await bcrypt.compare(password, user.password);
-        if (!isValidPassword) {
-            return res.status(401).json({
-                success: false,
-                message: 'メールアドレスまたはパスワードが正しくありません'
-            });
-        }
+        // フロントエンドから既にハッシュ化されたパスワードを受信して認証
+        const authResult = await gasService.login(email, password);
+        const user = authResult.user;
 
         // JWTトークン生成
         const token = generateToken(user.id);
-
-        // パスワードを除外してレスポンス
-        const { password: _, ...userWithoutPassword } = user;
 
         res.json({
             success: true,
             message: 'ログインしました',
             data: {
-                user: userWithoutPassword,
+                user,
                 token
             }
         });
 
     } catch (error) {
         console.error('Login Error:', error);
+        
+        // Google Apps Scriptからの認証エラーを判定
+        if (error.message.includes('メールアドレスまたはパスワードが正しくありません')) {
+            return res.status(401).json({
+                success: false,
+                message: 'メールアドレスまたはパスワードが正しくありません'
+            });
+        }
+        
         res.status(500).json({
             success: false,
-            message: error.message || 'ログイン処理中にエラーが発生しました'
+            message: 'ログイン処理中にエラーが発生しました'
         });
     }
 });

@@ -23,10 +23,52 @@ router.get('/', [
             });
         }
 
-        const { status = 'all', priority, search } = req.query;
+        const { status = 'all', priority, search, limit = 50, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+
+        console.log('Getting tasks with filters:', { status, priority, search, limit, sortBy, sortOrder });
 
         // GASから全タスクを取得
         let tasks = await gasService.getTasks();
+        
+        console.log('Raw tasks from GAS:', tasks?.length || 0);
+
+        // タスクが配列でない場合の処理
+        if (!Array.isArray(tasks)) {
+            console.warn('Tasks from GAS is not an array:', tasks);
+            tasks = [];
+        }
+
+        // データの正規化（フロントエンドが期待する形式に変換）
+        tasks = tasks.map(task => {
+            try {
+                return {
+                    _id: task._id || task.id || Date.now().toString(),
+                    title: task.title || 'タイトルなし',
+                    description: task.description || '',
+                    priority: task.priority || 'medium',
+                    completed: Boolean(task.completed || task.status === 'completed'),
+                    status: task.status || (task.completed ? 'completed' : 'pending'),
+                    dueDate: task.dueDate || null,
+                    createdAt: task.createdAt || new Date().toISOString(),
+                    updatedAt: task.updatedAt || new Date().toISOString(),
+                    assignedTo: {
+                        _id: task.assignedTo?._id || task.assignedTo || 'unknown',
+                        displayName: task.assignedTo?.displayName || task.assignedToName || '未割り当て',
+                        email: task.assignedTo?.email || ''
+                    },
+                    createdBy: {
+                        _id: task.createdBy?._id || task.createdBy || req.user?._id || 'unknown',
+                        displayName: task.createdBy?.displayName || task.createdByName || req.user?.displayName || '不明',
+                        email: task.createdBy?.email || req.user?.email || ''
+                    }
+                };
+            } catch (error) {
+                console.error('Error normalizing task:', error, task);
+                return null;
+            }
+        }).filter(task => task !== null);
+
+        console.log('Normalized tasks:', tasks.length);
 
         // フィルタリング
         if (status !== 'all') {
@@ -45,8 +87,20 @@ router.get('/', [
             );
         }
 
-        // 作成日時順にソート（新しい順）
-        tasks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        // ソート
+        tasks.sort((a, b) => {
+            const aValue = new Date(a[sortBy] || a.createdAt);
+            const bValue = new Date(b[sortBy] || b.createdAt);
+            return sortOrder === 'desc' ? bValue - aValue : aValue - bValue;
+        });
+
+        // 制限
+        const limitNum = parseInt(limit) || 50;
+        if (limitNum > 0) {
+            tasks = tasks.slice(0, limitNum);
+        }
+
+        console.log('Final filtered tasks:', tasks.length);
 
         res.json({
             success: true,
@@ -58,9 +112,21 @@ router.get('/', [
 
     } catch (error) {
         console.error('Get Tasks Error:', error);
+        console.error('Error stack:', error.stack);
+        
+        // GASサービスエラーの場合の特別な処理
+        if (error.message && error.message.includes('GAS')) {
+            return res.status(503).json({
+                success: false,
+                message: 'Google Apps Scriptサービスとの通信でエラーが発生しました。しばらく待ってから再度お試しください。',
+                error: error.message
+            });
+        }
+        
         res.status(500).json({
             success: false,
-            message: error.message || 'タスク取得中にエラーが発生しました'
+            message: error.message || 'タスク取得中にエラーが発生しました',
+            error: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 });
@@ -156,7 +222,11 @@ router.put('/:id', [
     body('assignedTo')
         .optional()
         .isString()
-        .withMessage('担当者IDが無効です')
+        .withMessage('担当者IDが無効です'),
+    body('completed')
+        .optional()
+        .isBoolean()
+        .withMessage('完了状態は真偽値である必要があります')
 ], async (req, res) => {
     try {
         const errors = validationResult(req);
@@ -172,11 +242,23 @@ router.put('/:id', [
         const updates = {};
 
         // 更新するフィールドのみを抽出
-        ['title', 'description', 'priority', 'status', 'dueDate', 'assignedTo'].forEach(field => {
+        ['title', 'description', 'priority', 'status', 'dueDate', 'assignedTo', 'completed'].forEach(field => {
             if (req.body[field] !== undefined) {
                 updates[field] = req.body[field];
             }
         });
+
+        // completedフィールドがある場合、statusも設定
+        if (req.body.completed !== undefined) {
+            updates.status = req.body.completed ? 'completed' : 'pending';
+        }
+
+        // statusフィールドがある場合、completedも設定
+        if (req.body.status !== undefined) {
+            updates.completed = req.body.status === 'completed';
+        }
+
+        console.log('Task update request:', { taskId, updates });
 
         if (Object.keys(updates).length === 0) {
             return res.status(400).json({
@@ -253,15 +335,26 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
-// 特定のタスク取得
+// タスク詳細取得
 router.get('/:id', async (req, res) => {
     try {
         const taskId = req.params.id;
+        console.log('Getting task details for ID:', taskId);
 
-        // 全タスクを取得して特定のタスクを検索
-        const tasks = await gasService.getTasks();
-        const task = tasks.find(t => t.id === taskId);
+        // GASから全タスクを取得して指定IDを検索
+        const allTasks = await gasService.getTasks();
+        
+        if (!Array.isArray(allTasks)) {
+            console.warn('Tasks from GAS is not an array:', allTasks);
+            return res.status(500).json({
+                success: false,
+                message: 'タスクデータの取得に失敗しました'
+            });
+        }
 
+        // 指定されたIDのタスクを検索
+        const task = allTasks.find(t => t._id === taskId || t.id === taskId);
+        
         if (!task) {
             return res.status(404).json({
                 success: false,
@@ -269,16 +362,43 @@ router.get('/:id', async (req, res) => {
             });
         }
 
+        // データの正規化
+        const normalizedTask = {
+            _id: task._id || task.id || taskId,
+            title: task.title || 'タイトルなし',
+            description: task.description || '',
+            priority: task.priority || 'medium',
+            completed: Boolean(task.completed || task.status === 'completed'),
+            status: task.status || (task.completed ? 'completed' : 'pending'),
+            dueDate: task.dueDate || null,
+            createdAt: task.createdAt || new Date().toISOString(),
+            updatedAt: task.updatedAt || new Date().toISOString(),
+            assignedTo: {
+                _id: task.assignedTo?._id || task.assignedTo || 'unknown',
+                displayName: task.assignedTo?.displayName || task.assignedToName || '未割り当て',
+                email: task.assignedTo?.email || ''
+            },
+            createdBy: {
+                _id: task.createdBy?._id || task.createdBy || req.user?._id || 'unknown',
+                displayName: task.createdBy?.displayName || task.createdByName || req.user?.displayName || '不明',
+                email: task.createdBy?.email || req.user?.email || ''
+            }
+        };
+
+        console.log('Task details retrieved:', normalizedTask);
+
         res.json({
             success: true,
-            data: task
+            data: {
+                task: normalizedTask
+            }
         });
 
     } catch (error) {
-        console.error('Get Task Error:', error);
+        console.error('Get Task Details Error:', error);
         res.status(500).json({
             success: false,
-            message: error.message || 'タスク取得中にエラーが発生しました'
+            message: error.message || 'タスク詳細の取得中にエラーが発生しました'
         });
     }
 });

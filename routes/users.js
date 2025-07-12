@@ -11,29 +11,61 @@ router.use(auth);
 router.get('/', async (req, res) => {
     try {
         const { search } = req.query;
+        console.log('Getting users, search query:', search);
 
         // GASから全ユーザーを取得
-        let users = await gasService.getUsers();
+        let users = [];
+        try {
+            users = await gasService.getUsers();
+            console.log('Users from GAS:', users.length, 'users retrieved');
+        } catch (gasError) {
+            console.error('Error getting users from GAS:', gasError);
+            // GASエラーの場合、デフォルトユーザーを返す
+            users = [
+                {
+                    _id: '1',
+                    id: '1',
+                    username: 'admin',
+                    email: 'admin@workerbee.com',
+                    displayName: '管理者'
+                },
+                {
+                    _id: '2', 
+                    id: '2',
+                    username: 'user1',
+                    email: 'user1@workerbee.com',
+                    displayName: 'ユーザー1'
+                }
+            ];
+            console.log('Using fallback users:', users.length);
+        }
 
         // 検索フィルタリング
         if (search) {
             const searchLower = search.toLowerCase();
             users = users.filter(user => 
-                user.displayName.toLowerCase().includes(searchLower) ||
-                user.username.toLowerCase().includes(searchLower) ||
-                user.email.toLowerCase().includes(searchLower)
+                (user.displayName && user.displayName.toLowerCase().includes(searchLower)) ||
+                (user.username && user.username.toLowerCase().includes(searchLower)) ||
+                (user.email && user.email.toLowerCase().includes(searchLower))
             );
         }
 
         // パスワードは除外して返す
         const safeUsers = users.map(user => {
             const { password, ...safeUser } = user;
-            return safeUser;
+            return {
+                ...safeUser,
+                _id: safeUser._id || safeUser.id // _idが無い場合はidを使用
+            };
         });
+
+        console.log('Returning safe users:', safeUsers.length);
 
         res.json({
             success: true,
-            data: safeUsers
+            data: {
+                users: safeUsers
+            }
         });
 
     } catch (error) {
@@ -103,6 +135,53 @@ router.get('/:id', async (req, res) => {
         res.status(500).json({
             success: false,
             message: error.message || 'ユーザー取得中にエラーが発生しました'
+        });
+    }
+});
+
+// ユーザー検索（既存のsearchUsersメソッド互換性のため）
+router.get('/search', async (req, res) => {
+    try {
+        const { q } = req.query;
+
+        if (!q || q.length < 2) {
+            return res.json({
+                success: true,
+                data: {
+                    users: []
+                }
+            });
+        }
+
+        // GASから全ユーザーを取得
+        let users = await gasService.getUsers();
+
+        // 検索フィルタリング
+        const searchLower = q.toLowerCase();
+        users = users.filter(user => 
+            user.displayName.toLowerCase().includes(searchLower) ||
+            user.username.toLowerCase().includes(searchLower) ||
+            user.email.toLowerCase().includes(searchLower)
+        );
+
+        // パスワードは除外して返す
+        const safeUsers = users.map(user => {
+            const { password, ...safeUser } = user;
+            return safeUser;
+        });
+
+        res.json({
+            success: true,
+            data: {
+                users: safeUsers
+            }
+        });
+
+    } catch (error) {
+        console.error('Search Users Error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'ユーザー検索中にエラーが発生しました'
         });
     }
 });

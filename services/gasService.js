@@ -57,19 +57,57 @@ class GasService {
         }
     }
 
-    // タスク関連のメソッド
-    async getTasks() {
+    async getUsersWithPasswords() {
         try {
-            const response = await axios.get(`${this.gasUrl}?action=getTasks`);
+            const response = await axios.get(`${this.gasUrl}?action=getUsersWithPasswords`);
             
             if (response.data.success) {
                 return response.data.data;
             } else {
-                throw new Error(response.data.message || 'タスク取得に失敗しました');
+                throw new Error(response.data.message || 'ユーザー取得に失敗しました');
+            }
+        } catch (error) {
+            console.error('GAS Get Users With Passwords Error:', error);
+            throw new Error(error.response?.data?.message || 'ユーザー取得エラーが発生しました');
+        }
+    }
+
+    // タスク関連のメソッド
+    async getTasks() {
+        try {
+            console.log('Requesting tasks from GAS...');
+            const response = await axios.get(`${this.gasUrl}?action=getTasks`, {
+                timeout: 10000, // 10秒のタイムアウト
+                headers: {
+                    'User-Agent': 'WorkerBee/1.0'
+                }
+            });
+            
+            console.log('GAS getTasks response status:', response.status);
+            console.log('GAS getTasks response data:', response.data);
+            
+            if (response.data && response.data.success) {
+                const tasks = response.data.data || [];
+                console.log('Successfully retrieved tasks from GAS:', tasks.length);
+                return Array.isArray(tasks) ? tasks : [];
+            } else {
+                console.error('GAS returned unsuccessful response:', response.data);
+                throw new Error(response.data?.message || 'タスク取得に失敗しました');
             }
         } catch (error) {
             console.error('GAS Get Tasks Error:', error);
-            throw new Error(error.response?.data?.message || 'タスク取得エラーが発生しました');
+            
+            if (error.code === 'ECONNABORTED') {
+                throw new Error('GAS サービスへの接続がタイムアウトしました');
+            } else if (error.response) {
+                console.error('GAS Error Response:', error.response.status, error.response.data);
+                throw new Error(`GAS サービスエラー: ${error.response.status} - ${error.response.data?.message || error.message}`);
+            } else if (error.request) {
+                console.error('GAS No Response:', error.request);
+                throw new Error('GAS サービスからの応答がありません。ネットワーク接続を確認してください。');
+            } else {
+                throw new Error(`GAS 通信エラー: ${error.message}`);
+            }
         }
     }
 
@@ -93,19 +131,42 @@ class GasService {
 
     async updateTask(taskId, updates) {
         try {
+            console.log('Updating task in GAS:', taskId, updates);
+            
             const response = await axios.post(this.gasUrl, {
                 action: 'updateTask',
                 payload: { id: taskId, ...updates }
+            }, {
+                timeout: 10000, // 10秒のタイムアウト
+                headers: {
+                    'User-Agent': 'WorkerBee/1.0'
+                }
             });
             
-            if (response.data.success) {
-                return response.data.data;
+            console.log('GAS updateTask response status:', response.status);
+            console.log('GAS updateTask response data:', response.data);
+            
+            if (response.data && response.data.success) {
+                console.log('Task updated successfully in GAS');
+                return { task: response.data.data };
             } else {
-                throw new Error(response.data.message || 'タスク更新に失敗しました');
+                console.error('GAS returned unsuccessful response for updateTask:', response.data);
+                throw new Error(response.data?.message || 'タスク更新に失敗しました');
             }
         } catch (error) {
             console.error('GAS Update Task Error:', error);
-            throw new Error(error.response?.data?.message || 'タスク更新エラーが発生しました');
+            
+            if (error.code === 'ECONNABORTED') {
+                throw new Error('GAS サービスへの接続がタイムアウトしました');
+            } else if (error.response) {
+                console.error('GAS Error Response:', error.response.status, error.response.data);
+                throw new Error(`GAS サービスエラー: ${error.response.status} - ${error.response.data?.message || error.message}`);
+            } else if (error.request) {
+                console.error('GAS No Response:', error.request);
+                throw new Error('GAS サービスからの応答がありません。ネットワーク接続を確認してください。');
+            } else {
+                throw new Error(`GAS 通信エラー: ${error.message}`);
+            }
         }
     }
 

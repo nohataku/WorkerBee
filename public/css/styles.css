@@ -588,11 +588,21 @@ body {
     box-shadow: 0 3px 10px rgba(0,0,0,0.05);
     transition: all 0.3s ease;
     cursor: pointer;
+    position: relative;
 }
 
 .task-item:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+/* タスクアクションボタンをクリックした時はタスクアイテムのクリックイベントを無効化 */
+.task-item .task-actions {
+    pointer-events: auto;
+}
+
+.task-item .task-actions * {
+    pointer-events: auto;
 }
 
 .task-checkbox {
@@ -694,8 +704,10 @@ body {
 .task-actions {
     display: flex;
     gap: 8px;
-    opacity: 0;
+    opacity: 0.8;
     transition: opacity 0.3s ease;
+    z-index: 10;
+    position: relative;
 }
 
 .task-item:hover .task-actions {
@@ -712,6 +724,10 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 14px;
+    position: relative;
+    z-index: 11;
+    pointer-events: auto;
 }
 
 .task-action-btn.edit {
@@ -719,13 +735,55 @@ body {
     color: #1976d2;
 }
 
+.task-action-btn.edit:hover {
+    background: #bbdefb;
+    color: #0d47a1;
+}
+
 .task-action-btn.delete {
     background: #ffebee;
     color: #c62828;
 }
 
+.task-action-btn.delete:hover {
+    background: #ffcdd2;
+    color: #b71c1c;
+}
+
 .task-action-btn:hover {
     transform: scale(1.1);
+}
+
+.task-action-btn:active {
+    transform: scale(0.95);
+}
+
+/* モバイル対応 - タスクアクション */
+@media (max-width: 768px) {
+    .task-actions {
+        opacity: 1; /* モバイルでは常に表示 */
+    }
+    
+    .task-action-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+    }
+    
+    .task-item {
+        padding: 16px;
+    }
+}
+
+/* タッチデバイス対応 */
+@media (hover: none) {
+    .task-actions {
+        opacity: 1;
+    }
+    
+    .task-action-btn:hover {
+        transform: none; /* タッチデバイスではhoverエフェクトを無効化 */
+    }
 }
 
 /* 空状態 */
@@ -826,9 +884,42 @@ body {
     min-width: 100px;
 }
 
-/* ユーザー検索 */
+/* ユーザー選択プルダウン */
+.user-select {
+    position: relative;
+}
+
+.user-select select {
+    width: 100%;
+    padding: 12px 40px 12px 15px;
+    border: 2px solid #e1e5e9;
+    border-radius: 10px;
+    background: white;
+    font-size: 1rem;
+    color: #333;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.user-select select:focus {
+    border-color: #667eea;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.user-select select:hover {
+    border-color: #b8c4e8;
+}
+
+/* ユーザー検索（保持しつつ非表示にする） */
 .user-search {
     position: relative;
+    display: none; /* プルダウンに変更したため非表示 */
 }
 
 .user-search-results {
