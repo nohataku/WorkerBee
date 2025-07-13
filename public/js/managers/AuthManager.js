@@ -48,18 +48,19 @@ class AuthManager {
 
             console.log('Login API response:', response);
 
-            if (response.success) {
-                this.apiClient.setToken(response.data.token);
-                this.user = response.data.user;
+            // GAS環境では、ApiClientがresult.dataを直接返すため、responseにはユーザー情報が含まれる
+            if (response && response.user) {
+                // トークンは現在のシステムでは使用していないため、ユーザー情報のみ設定
+                this.user = response.user;
                 
                 console.log('Login successful, showing notification...');
                 this.notificationManager.show('success', 'ログイン成功', 'ようこそ！');
                 
                 return { success: true, user: this.user };
             } else {
-                console.log('Login failed:', response.message);
-                this.notificationManager.show('error', 'ログインエラー', response.message || 'ログインに失敗しました');
-                return { success: false, message: response.message };
+                console.log('Login failed: Invalid response format');
+                this.notificationManager.show('error', 'ログインエラー', 'ログインに失敗しました');
+                return { success: false, message: 'ログインに失敗しました' };
             }
         } catch (error) {
             console.error('Login error:', error);
