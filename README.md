@@ -36,10 +36,25 @@ npm start
 # http://localhost:3000 でアクセス
 ```
 
-#### GitHub Pages
-1. リポジトリをGitHubにプッシュ
-2. Settings → Pages → GitHub Actions
-3. 自動デプロイ後、`https://username.github.io/WorkerBee/` でアクセス
+#### GitHub Pages デプロイ
+```bash
+# 1. リポジトリをGitHubにプッシュ
+git add .
+git commit -m "GitHub Pages対応"
+git push origin main
+
+# 2. GitHub リポジトリ設定
+# Settings → Pages → Source: "GitHub Actions"
+
+# 3. 自動デプロイ後、以下でアクセス
+# https://nohataku.github.io/WorkerBee/
+```
+
+#### ローカルでGitHub Pages環境をテスト
+```bash
+npm run pages:local
+# http://localhost:8080/WorkerBee/ でアクセス
+```
 
 ### 🧪 環境テスト
 

@@ -7,9 +7,11 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "install-deps": "npm install",
-    "build": "mkdir -p dist && cp -r public/* dist/",
-    "deploy": "npm run build && gh-pages -d dist",
-    "serve": "cd public && python -m http.server 8000"
+    "build": "mkdir -p dist && cp -r public/* dist/ && touch dist/.nojekyll",
+    "build:windows": "if not exist dist mkdir dist && xcopy /E /I public\\* dist\\ && echo. > dist\\.nojekyll",
+    "deploy": "npm run build && echo 'Build completed for GitHub Pages'",
+    "serve": "cd public && python -m http.server 8000",
+    "pages:local": "cd public && npx http-server -p 8080 -c-1"
   },
   "keywords": [
     "task",
