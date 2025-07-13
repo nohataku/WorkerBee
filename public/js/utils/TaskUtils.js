@@ -47,8 +47,9 @@ class TaskUtils {
 
     static createTaskHTML(task, currentUser, allUsers = []) {
         try {
-            // タスクデータの検証
-            if (!task || !task._id) {
+            // タスクデータの検証（id または _id どちらでも対応）
+            const taskId = task?.id || task?._id;
+            if (!task || !taskId) {
                 throw new Error('Invalid task data');
             }
 
@@ -99,7 +100,7 @@ class TaskUtils {
             const canDelete = task.createdBy && currentUser && task.createdBy._id === currentUser._id;
             
             return `
-                <div class="task-item ${task.completed ? 'completed' : ''}" id="task-${task._id}">
+                <div class="task-item ${task.completed ? 'completed' : ''}" id="task-${taskId}">
                     <div class="task-checkbox ${task.completed ? 'checked' : ''}"></div>
                     <div class="task-content">
                         <div class="task-title">${TaskUtils.escapeHtml(task.title || 'タイトルなし')}</div>
@@ -115,10 +116,10 @@ class TaskUtils {
                         </div>
                     </div>
                     <div class="task-actions">
-                        <button class="task-action-btn edit" title="編集" data-task-id="${task._id}">
+                        <button class="task-action-btn edit" title="編集" data-task-id="${taskId}">
                             <i class="fas fa-edit"></i>
                         </button>
-                        ${canDelete ? `<button class="task-action-btn delete" title="削除" data-task-id="${task._id}">
+                        ${canDelete ? `<button class="task-action-btn delete" title="削除" data-task-id="${taskId}">
                             <i class="fas fa-trash"></i>
                         </button>` : ''}
                     </div>

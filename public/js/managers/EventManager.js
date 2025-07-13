@@ -264,13 +264,13 @@ class EventManager {
 
     async handleDashboardLoad() {
         try {
-            const [stats, recentTasks] = await Promise.all([
-                this.taskManager.loadStats(),
+            const [/* stats, */ recentTasks] = await Promise.all([
+                // this.taskManager.loadStats(), // 一時的に無効化
                 this.taskManager.loadRecentTasks(),
                 this.taskManager.loadAllUsers() // ユーザー情報も同時に読み込み
             ]);
             
-            this.uiManager.updateStatsDisplay(stats);
+            // this.uiManager.updateStatsDisplay(stats); // 一時的に無効化
             this.uiManager.renderRecentTasks(recentTasks);
         } catch (error) {
             console.error('Error loading dashboard:', error);

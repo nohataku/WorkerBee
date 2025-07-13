@@ -116,7 +116,7 @@ class TaskManager {
 
     async toggleTask(taskId) {
         try {
-            const task = this.tasks.find(t => t._id === taskId);
+            const task = this.tasks.find(t => (t._id === taskId || t.id === taskId));
             if (!task) {
                 console.error('Task not found:', taskId);
                 this.notificationManager.show('error', 'エラー', 'タスクが見つかりません');
