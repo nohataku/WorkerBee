@@ -136,7 +136,19 @@ class TaskManager {
             
             console.log('Toggle task response:', response);
             
-            if (response && response.success) {
+            // GAS環境では、ApiClientがresult.dataを直接返すため、responseにはタスクオブジェクトが含まれる
+            if (response && (response.id || response._id)) {
+                const action = newCompleted ? '完了' : '未完了に変更';
+                this.notificationManager.show('success', 'タスク更新', `タスクを${action}しました`);
+                
+                // Socket通知
+                if (this.socketManager) {
+                    this.socketManager.emit('task-updated', response);
+                }
+                
+                return true;
+            } else if (response && response.success) {
+                // Node.js環境の場合（success/data形式）
                 const action = newCompleted ? '完了' : '未完了に変更';
                 this.notificationManager.show('success', 'タスク更新', `タスクを${action}しました`);
                 
@@ -166,7 +178,21 @@ class TaskManager {
         try {
             const response = await this.apiClient.call(`/api/tasks/${taskId}`, 'DELETE');
             
-            if (response.success) {
+            console.log('Delete task response:', response);
+            
+            // GAS環境では、削除成功時に削除されたタスクオブジェクトまたは成功メッセージが返される
+            // レスポンスが存在し、エラーメッセージがない場合は成功とみなす
+            if (response && !response.error) {
+                this.notificationManager.show('success', 'タスク削除', 'タスクを削除しました');
+                
+                // Socket通知
+                if (this.socketManager) {
+                    this.socketManager.emit('task-updated', { taskId, deleted: true });
+                }
+                
+                return true;
+            } else if (response && response.success) {
+                // Node.js環境の場合（success/data形式）
                 this.notificationManager.show('success', 'タスク削除', 'タスクを削除しました');
                 
                 // Socket通知
@@ -176,7 +202,8 @@ class TaskManager {
                 
                 return true;
             } else {
-                this.notificationManager.show('error', 'エラー', 'タスクの削除に失敗しました');
+                console.error('Delete task failed:', response);
+                this.notificationManager.show('error', 'エラー', response?.message || 'タスクの削除に失敗しました');
                 return false;
             }
         } catch (error) {
@@ -203,7 +230,20 @@ class TaskManager {
             
             console.log('Task submit response:', response);
             
-            if (response && response.success) {
+            // GAS環境では、ApiClientがresult.dataを直接返すため、responseにはタスクオブジェクトが含まれる
+            // タスクオブジェクトには通常idプロパティが含まれるため、これで成功を判定
+            if (response && (response.id || response._id)) {
+                console.log(`Task ${action} successful:`, response);
+                this.notificationManager.show('success', `タスク${action}`, `タスクを${action}しました`);
+                
+                // Socket通知
+                if (this.socketManager) {
+                    this.socketManager.emit('task-updated', response);
+                }
+                
+                return { success: true, data: response };
+            } else if (response && response.success) {
+                // Node.js環境の場合（success/data形式）
                 this.notificationManager.show('success', `タスク${action}`, `タスクを${action}しました`);
                 
                 // Socket通知
@@ -233,8 +273,15 @@ class TaskManager {
         try {
             const response = await this.apiClient.call(`/api/tasks?search=${encodeURIComponent(query)}`);
             
-            if (response.success) {
-                this.tasks = response.data.tasks;
+            console.log('Search tasks response:', response);
+            
+            // GAS環境では、ApiClientがresult.dataを直接返すため、responseには配列が含まれる
+            if (Array.isArray(response)) {
+                this.tasks = response;
+                return this.tasks;
+            } else if (response && response.success) {
+                // Node.js環境の場合（success/data形式）
+                this.tasks = response.data.tasks || [];
                 return this.tasks;
             }
             return [];

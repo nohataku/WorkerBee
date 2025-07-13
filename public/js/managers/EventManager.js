@@ -378,25 +378,37 @@ class EventManager {
     async initializeAppAfterAuth() {
         try {
             console.log('Initializing app after authentication...');
-            this.uiManager.setupUserInfo();
+            
+            // ユーザー情報の設定
+            try {
+                this.uiManager.setupUserInfo();
+            } catch (error) {
+                console.error('Failed to setup user info:', error);
+            }
             
             // タスクとステータスの読み込みを順次実行
-            await Promise.all([
+            const initPromises = [
                 this.handleTaskLoad().catch(error => {
                     console.error('Failed to load tasks during initialization:', error);
+                    return null; // エラーを吸収して続行
                 }),
                 this.handleDashboardLoad().catch(error => {
                     console.error('Failed to load dashboard during initialization:', error);
+                    return null; // エラーを吸収して続行
                 }),
                 this.taskManager.loadAllUsers().catch(error => {
                     console.error('Failed to load users during initialization:', error);
+                    return null; // エラーを吸収して続行
                 })
-            ]);
+            ];
+            
+            await Promise.allSettled(initPromises);
             
             console.log('App initialization completed');
         } catch (error) {
             console.error('Error in initializeAppAfterAuth:', error);
-            this.notificationManager.show('error', '初期化エラー', 'アプリケーションの初期化中にエラーが発生しました');
+            // 重要でないエラーの場合は通知を表示せずにログのみ
+            console.warn('Some initialization steps failed, but continuing...');
         }
     }
 }

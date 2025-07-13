@@ -91,15 +91,23 @@ class AuthManager {
                 password: hashedPassword
             });
 
-            if (response.success) {
-                this.apiClient.setToken(response.data.token);
-                this.user = response.data.user;
+            console.log('Register API response:', response);
+
+            // GAS環境では、ApiClientがresult.dataを直接返すため、responseにはユーザー情報が含まれる
+            if (response && response.user) {
+                // GAS環境では通常トークンは使用しないため、tokenがある場合のみ設定
+                if (response.token) {
+                    this.apiClient.setToken(response.token);
+                }
+                this.user = response.user;
                 
+                console.log('Registration successful, user:', this.user);
                 this.notificationManager.show('success', '登録成功', 'アカウントが作成されました！');
                 return { success: true, user: this.user };
             } else {
-                this.notificationManager.show('error', '登録エラー', response.message);
-                return { success: false, message: response.message };
+                console.log('Registration failed: Invalid response format');
+                this.notificationManager.show('error', '登録エラー', response?.message || '登録に失敗しました');
+                return { success: false, message: response?.message || '登録に失敗しました' };
             }
         } catch (error) {
             console.error('Registration error:', error);

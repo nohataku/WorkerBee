@@ -114,8 +114,10 @@ class ApiClient {
             } else {
                 // GASからのレスポンス（success/data形式）
                 if (result.success) {
+                    console.log('GAS Response data:', result.data);
                     return result.data;
                 } else {
+                    console.error('GAS Error response:', result);
                     throw new Error(result.message || 'GASエラーが発生しました');
                 }
             }
