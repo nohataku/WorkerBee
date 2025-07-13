@@ -43,14 +43,19 @@ class TaskManager {
             console.log('Load tasks response:', response);
             
             if (response && response.tasks) {
-                // GAS環境では直接tasksが返される
+                // レスポンスに直接tasksプロパティがある場合
                 this.tasks = response.tasks || [];
-                console.log('Tasks loaded:', this.tasks.length);
+                console.log('Tasks loaded from response.tasks:', this.tasks.length);
+                return this.tasks;
+            } else if (Array.isArray(response)) {
+                // レスポンスが直接配列の場合（GAS環境の可能性）
+                this.tasks = response;
+                console.log('Tasks loaded from array response:', this.tasks.length);
                 return this.tasks;
             } else if (response && response.success && response.data) {
                 // Node.js環境ではsuccess/data形式
                 this.tasks = response.data.tasks || [];
-                console.log('Tasks loaded:', this.tasks.length);
+                console.log('Tasks loaded from response.data.tasks:', this.tasks.length);
                 return this.tasks;
             } else {
                 console.error('Failed to load tasks:', response);
@@ -74,8 +79,11 @@ class TaskManager {
             console.log('Load recent tasks response:', response);
             
             if (response && response.tasks) {
-                // GAS環境では直接tasksが返される
+                // レスポンスに直接tasksプロパティがある場合
                 return response.tasks || [];
+            } else if (Array.isArray(response)) {
+                // レスポンスが直接配列の場合（GAS環境の可能性）
+                return response;
             } else if (response && response.success && response.data) {
                 // Node.js環境ではsuccess/data形式
                 return response.data.tasks || [];
@@ -241,7 +249,7 @@ class TaskManager {
             const response = await this.apiClient.call('/api/tasks/stats/user');
             
             if (response && response.stats) {
-                // GAS環境では直接statsが返される
+                // レスポンスに直接statsプロパティがある場合
                 return response.stats;
             } else if (response && response.success && response.data) {
                 // Node.js環境ではsuccess/data形式
