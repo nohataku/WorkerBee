@@ -22,9 +22,7 @@ class ApiClient {
         try {
             let fullUrl;
             let requestData;
-            let headers = {
-                'Content-Type': 'application/json'
-            };
+            let headers = {};
             let requestMethod = method;
             
             // 環境に応じた処理の分岐
@@ -32,6 +30,7 @@ class ApiClient {
                 // 開発環境: Node.jsサーバーを使用
                 fullUrl = url.startsWith('http') ? url : `${this.baseUrl}${url}`;
                 requestData = data;
+                headers['Content-Type'] = 'application/json';
                 
                 // JWT認証ヘッダーを追加
                 if (this.token) {
@@ -52,6 +51,10 @@ class ApiClient {
                 if (this.token) {
                     requestData.payload.token = this.token;
                 }
+                
+                // GASの場合、プリフライトリクエストを避けるため
+                // Content-Typeをtext/plainに設定
+                headers['Content-Type'] = 'text/plain';
             }
             
             const options = {

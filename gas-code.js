@@ -121,8 +121,8 @@ function doGet(e) {
  * プリフライトリクエスト（OPTIONS）の処理
  */
 function doOptions(e) {
-  return ContentService.createTextOutput('')
-    .setMimeType(ContentService.MimeType.TEXT);
+  return HtmlService.createHtmlOutput('')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 function doPost(e) {
