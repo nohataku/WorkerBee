@@ -239,3 +239,16 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# Netlify
+.netlify/
+.netlify/state.json
+
+# Netlify Local CLI
+.netlify/
+
+# Netlify Edge Functions
+.netlify/edge-functions
+
+# Local Netlify folder
+.netlify

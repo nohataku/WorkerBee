@@ -9,7 +9,9 @@
     "install-deps": "npm install",
     "build": "mkdir -p dist && cp -r public/* dist/ && touch dist/.nojekyll",
     "build:windows": "if not exist dist mkdir dist && xcopy /E /I public\\* dist\\ && echo. > dist\\.nojekyll",
+    "build:netlify": "if not exist dist mkdir dist && (rmdir /s /q dist 2>nul || echo.) && mkdir dist && xcopy /E /I public\\* dist\\",
     "deploy": "npm run build && echo 'Build completed for GitHub Pages'",
+    "deploy:netlify": "npm run build:netlify && echo 'Build completed for Netlify'",
     "serve": "cd public && python -m http.server 8000",
     "pages:local": "cd public && npx http-server -p 8080 -c-1"
   },

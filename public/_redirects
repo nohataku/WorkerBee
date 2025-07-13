@@ -1,0 +1,5 @@
+# SPA (Single Page Application) 対応
+/*    /index.html   200
+
+# API エンドポイントのプロキシ設定（必要に応じて）
+/api/*  https://script.google.com/macros/s/YOUR_GAS_ID/exec  200

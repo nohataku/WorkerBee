@@ -1,68 +1,29 @@
-name: Deploy to GitHub Pages
+# このワークフローはNetlify移行により無効化されました
+# Netlifyでは直接Gitリポジトリから自動デプロイが行われます
+# 
+# Netlify設定:
+# - Build command: npm run build:netlify
+# - Publish directory: dist
+# - Auto-deploy: main ブランチへのpush時
+#
+# 削除する場合は、このファイル全体を削除してください
 
-on:
-  push:
-    branches: [ main ]
+name: Netlify Deploy (Disabled)
+
+# on:
+#   push:
+#     branches: [ main ]
+
+# このワークフローは実行されません
+on: []
 
 jobs:
-  deploy:
+  info:
     runs-on: ubuntu-latest
-    
-    # GitHub Pagesのデプロイ権限を追加
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    
-    # GitHub Pages環境を明示的に指定
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Create distribution directory
+    - name: Netlify Migration Info
       run: |
-        mkdir -p dist
-        
-    - name: Copy all public files
-      run: |
-        # publicフォルダの全内容をdistにコピー
-        cp -r public/* dist/
-        
-        # 隠しファイルもコピー（もしあれば）
-        cp -r public/.[^.]* dist/ 2>/dev/null || true
-        
-    - name: Create .nojekyll file
-      run: |
-        # GitHub PagesでJekyllの処理を無効化
-        touch dist/.nojekyll
-        
-    - name: List dist contents (debug)
-      run: |
-        echo "Contents of dist directory:"
-        ls -la dist/
-        
-    - name: Setup Pages
-      uses: actions/configure-pages@v3
-      
-    - name: Upload artifact
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: './dist'
-        
-    - name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4
+        echo "このプロジェクトはNetlifyに移行されました"
+        echo "GitHub Actionsによる自動デプロイは無効化されています"
+        echo "デプロイはNetlifyが自動で行います"
           

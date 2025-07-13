@@ -36,10 +36,10 @@ const config = {
             useNodeServer: true  // Node.jsサーバーを使用
         },
         
-        // 本番環境（GitHub Pages）
+        // 本番環境（Netlify）
         production: {
-            apiBaseUrl: '', // GitHub Pagesでは直接GASを使用
-            socketUrl: null, // GitHub Pagesではソケット通信なし
+            apiBaseUrl: '', // Netlifyでは直接GASを使用
+            socketUrl: null, // Netlifyではソケット通信なし
             debug: true,  // デバッグ用に一時的にtrueに変更
             useNodeServer: false  // GASを使用
         }
@@ -47,7 +47,7 @@ const config = {
 
     // 機能設定
     features: {
-        realTimeUpdates: false, // GitHub Pagesでは無効
+        realTimeUpdates: false, // Netlifyでは無効
         offlineMode: true,
         autoSave: true,
         notifications: true
@@ -73,7 +73,11 @@ function getCurrentEnvironment() {
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
         return 'development';
     } 
-    // GitHub Pagesの判定
+    // Netlifyの判定
+    else if (hostname.includes('netlify.app') || hostname.includes('netlify.com')) {
+        return 'production';
+    }
+    // GitHub Pagesの判定（後方互換性のため残す）
     else if (hostname.includes('github.io')) {
         return 'production';
     } 
