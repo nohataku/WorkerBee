@@ -10,10 +10,24 @@ class GasService {
     // ユーザー関連のメソッド
     async login(email, password) {
         try {
-            const response = await axios.post(this.gasUrl, {
+            console.log('🔐 GAS Login attempt:', { email, passwordLength: password?.length });
+            
+            const requestData = {
                 action: 'login',
                 payload: { email, password }
+            };
+            
+            console.log('📤 Sending to GAS:', { url: this.gasUrl, action: requestData.action });
+            
+            const response = await axios.post(this.gasUrl, requestData, {
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                timeout: 30000
             });
+            
+            console.log('📥 GAS Response status:', response.status);
+            console.log('📥 GAS Response data:', response.data);
             
             if (response.data.success) {
                 return response.data.data;
@@ -21,7 +35,12 @@ class GasService {
                 throw new Error(response.data.message || 'ログインに失敗しました');
             }
         } catch (error) {
-            console.error('GAS Login Error:', error);
+            console.error('🚨 GAS Login Error details:', {
+                message: error.message,
+                status: error.response?.status,
+                data: error.response?.data,
+                config: error.config
+            });
             throw new Error(error.response?.data?.message || 'ログインエラーが発生しました');
         }
     }

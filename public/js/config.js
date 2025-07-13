@@ -32,14 +32,16 @@ const config = {
         development: {
             apiBaseUrl: 'http://localhost:3000',
             socketUrl: 'http://localhost:3000',
-            debug: true
+            debug: true,
+            useNodeServer: true  // Node.jsサーバーを使用
         },
         
         // 本番環境（GitHub Pages）
         production: {
-            apiBaseUrl: 'https://script.google.com/macros/s/AKfycbyTwjTI134z5KkC3110WRS74u-5evlhjV4jeLAt7p-OxupVF2bOg8ajncbCkpr6WpW4/exec',
+            apiBaseUrl: '', // GitHub Pagesでは直接GASを使用
             socketUrl: null, // GitHub Pagesではソケット通信なし
-            debug: false
+            debug: true,  // デバッグ用に一時的にtrueに変更
+            useNodeServer: false  // GASを使用
         }
     },
 
@@ -64,13 +66,19 @@ const config = {
  */
 function getCurrentEnvironment() {
     const hostname = window.location.hostname;
+    const port = window.location.port;
     
+    // ローカル開発環境の判定
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
         return 'development';
-    } else if (hostname.includes('github.io')) {
+    } 
+    // GitHub Pagesの判定
+    else if (hostname.includes('github.io')) {
         return 'production';
-    } else {
-        return 'production'; // デフォルトは本番環境
+    } 
+    // その他（本番サーバーなど）
+    else {
+        return 'production';
     }
 }
 
@@ -79,11 +87,24 @@ function getCurrentEnvironment() {
  */
 function getEnvironmentConfig() {
     const env = getCurrentEnvironment();
-    return {
+    const envConfig = {
         ...config,
         current: env,
         ...config.environment[env]
     };
+    
+    // デバッグ情報を出力
+    console.log('🔧 WorkerBee Environment Config:', {
+        hostname: window.location.hostname,
+        port: window.location.port,
+        protocol: window.location.protocol,
+        environment: env,
+        apiBaseUrl: envConfig.apiBaseUrl,
+        socketUrl: envConfig.socketUrl,
+        gasUrl: envConfig.gas?.webAppUrl
+    });
+    
+    return envConfig;
 }
 
 // グローバルで利用可能にする

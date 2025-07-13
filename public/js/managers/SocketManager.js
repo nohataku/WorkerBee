@@ -7,26 +7,28 @@ class SocketManager {
     }
 
     initialize() {
-        // 設定でリアルタイム機能が無効、またはSocket.ioが利用不可の場合はスキップ
-        if (!this.config.features?.realTimeUpdates || typeof io === 'undefined' || !this.config.socketUrl) {
-            console.log('リアルタイム機能は無効です（GitHub Pages環境）');
+        // 開発環境でかつSocket.ioが利用可能な場合のみ有効
+        if (this.config.current === 'development' && 
+            this.config.socketUrl && 
+            typeof io !== 'undefined') {
+            console.log('リアルタイム機能を初期化します（開発環境）');
+            this.socket = io(this.config.socketUrl);
+            
+            this.socket.on('connect', () => {
+                console.log('Socket connected');
+                this.socket.emit('join-room', this.user._id);
+            });
+
+            this.socket.on('task-created', (data) => {
+                if (data.task.assignedTo._id === this.user._id) {
+                    this.notificationManager.show('info', '新しいタスク', `「${data.task.title}」が割り当てられました`);
+                    this.onTaskUpdate && this.onTaskUpdate();
+                }
+            });
+        } else {
+            console.log(`リアルタイム機能は無効です（${this.config.current}環境）`);
             return;
         }
-        
-        this.socket = io(this.config.socketUrl);
-        
-        this.socket.on('connect', () => {
-            console.log('Socket connected');
-            this.socket.emit('join-room', this.user._id);
-        });
-
-        this.socket.on('task-created', (data) => {
-            if (data.task.assignedTo._id === this.user._id) {
-                this.notificationManager.show('info', '新しいタスク', `「${data.task.title}」が割り当てられました`);
-                // タスクリストの再読み込みはAppで処理
-                this.onTaskUpdate && this.onTaskUpdate();
-            }
-        });
 
         this.socket.on('task-updated', (data) => {
             if (data.task.assignedTo._id === this.user._id) {

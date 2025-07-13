@@ -20,26 +20,50 @@ class ApiClient {
 
     async call(url, method = 'GET', data = null) {
         try {
-            // 設定から取得したベースURLを使用
-            const fullUrl = url.startsWith('http') ? url : `${this.baseUrl}${url}`;
+            let fullUrl;
+            let requestData;
+            let headers = {
+                'Content-Type': 'application/json'
+            };
+            let requestMethod = method;
+            
+            // 環境に応じた処理の分岐
+            if (this.config.current === 'development' && this.config.apiBaseUrl) {
+                // 開発環境: Node.jsサーバーを使用
+                fullUrl = url.startsWith('http') ? url : `${this.baseUrl}${url}`;
+                requestData = data;
+                
+                // JWT認証ヘッダーを追加
+                if (this.token) {
+                    headers.Authorization = `Bearer ${this.token}`;
+                }
+            } else {
+                // 本番環境: Google Apps Scriptを使用
+                fullUrl = this.config.gas.webAppUrl;
+                requestMethod = 'POST'; // GASは常にPOST
+                
+                // GAS用のデータ形式に変換
+                requestData = {
+                    action: this.extractActionFromUrl(url, method),
+                    payload: data || {}
+                };
+                
+                // GASでは認証情報をpayloadに含める
+                if (this.token) {
+                    requestData.payload.token = this.token;
+                }
+            }
             
             const options = {
-                method,
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                timeout: this.config.api?.timeout || 30000
+                method: requestMethod,
+                headers: headers
             };
 
-            if (this.token) {
-                options.headers.Authorization = `Bearer ${this.token}`;
+            if (requestData) {
+                options.body = JSON.stringify(requestData);
             }
 
-            if (data) {
-                options.body = JSON.stringify(data);
-            }
-
-            console.log(`API Call: ${method} ${fullUrl}`, data ? { data } : '');
+            console.log(`API Call [${this.config.current}]: ${requestMethod} ${fullUrl}`, requestData ? { data: requestData } : '');
             
             const response = await fetch(fullUrl, options);
             
@@ -66,12 +90,43 @@ class ApiClient {
             }
 
             const result = await response.json();
-            console.log(`API Response: ${method} ${url}`, result);
+            console.log(`API Response [${this.config.current}]: ${method} ${url}`, result);
             
-            return result;
+            // 環境に応じたレスポンス処理
+            if (this.config.current === 'development') {
+                // Node.jsサーバーからの直接レスポンス
+                return result;
+            } else {
+                // GASからのレスポンス（success/data形式）
+                if (result.success) {
+                    return result.data;
+                } else {
+                    throw new Error(result.message || 'GASエラーが発生しました');
+                }
+            }
         } catch (error) {
             console.error(`API Call Error: ${method} ${url}`, error);
             throw error;
         }
+    }
+    
+    /**
+     * URLとメソッドからGAS用のアクション名を抽出
+     */
+    extractActionFromUrl(url, method) {
+        const urlMap = {
+            'POST/api/auth/login': 'login',
+            'POST/api/auth/register': 'register',
+            'GET/api/auth/me': 'getCurrentUser',
+            'POST/api/auth/logout': 'logout',
+            'GET/api/tasks': 'getTasks',
+            'POST/api/tasks': 'createTask',
+            'PUT/api/tasks': 'updateTask',
+            'DELETE/api/tasks': 'deleteTask',
+            'GET/api/users': 'getUsers'
+        };
+        
+        const key = `${method}${url}`;
+        return urlMap[key] || 'unknown';
     }
 }

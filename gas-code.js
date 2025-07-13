@@ -1,4 +1,4 @@
-const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID'; // TODO: ここにあなたのスプレッドシートIDを入力してください
+const SPREADSHEET_ID = '1dG4vyqKarYzfGoJPwlwUquduPzQ9ODyGgFwlXlsrUb4'; // 設定ファイルから取得したスプレッドシートID
 const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 const tasksSheet = ss.getSheetByName('Tasks');
 const usersSheet = ss.getSheetByName('Users');
@@ -117,6 +117,14 @@ function doGet(e) {
   }
 }
 
+/**
+ * プリフライトリクエスト（OPTIONS）の処理
+ */
+function doOptions(e) {
+  return ContentService.createTextOutput('')
+    .setMimeType(ContentService.MimeType.TEXT);
+}
+
 function doPost(e) {
   const requestBody = JSON.parse(e.postData.contents);
   const action = requestBody.action;
@@ -132,6 +140,9 @@ function doPost(e) {
       case 'register':
         result = handleRegister(requestBody.payload);
         break;
+      case 'getTasks':
+        result = handleGetTasks(requestBody.payload);
+        break;
       case 'createTask':
         result = handleCreateTask(requestBody.payload);
         break;
@@ -140,6 +151,9 @@ function doPost(e) {
         break;
       case 'deleteTask':
         result = handleDeleteTask(requestBody.payload);
+        break;
+      case 'getUsers':
+        result = handleGetUsers(requestBody.payload);
         break;
       default:
         throw new Error('Invalid action');
