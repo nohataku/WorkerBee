@@ -1,6 +1,8 @@
 class ApiClient {
     constructor() {
         this.token = localStorage.getItem('workerbee_token');
+        this.config = window.WorkerBeeConfig || {};
+        this.baseUrl = this.config.apiBaseUrl || '';
     }
 
     setToken(token) {
@@ -18,11 +20,15 @@ class ApiClient {
 
     async call(url, method = 'GET', data = null) {
         try {
+            // 設定から取得したベースURLを使用
+            const fullUrl = url.startsWith('http') ? url : `${this.baseUrl}${url}`;
+            
             const options = {
                 method,
                 headers: {
                     'Content-Type': 'application/json'
-                }
+                },
+                timeout: this.config.api?.timeout || 30000
             };
 
             if (this.token) {
@@ -33,9 +39,9 @@ class ApiClient {
                 options.body = JSON.stringify(data);
             }
 
-            console.log(`API Call: ${method} ${url}`, data ? { data } : '');
+            console.log(`API Call: ${method} ${fullUrl}`, data ? { data } : '');
             
-            const response = await fetch(url, options);
+            const response = await fetch(fullUrl, options);
             
             // レスポンスのステータスをチェック
             if (!response.ok) {

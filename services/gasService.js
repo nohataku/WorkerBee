@@ -2,7 +2,9 @@ const axios = require('axios');
 
 class GasService {
     constructor() {
-        this.gasUrl = 'https://script.google.com/macros/s/AKfycbyTwjTI134z5KkC3110WRS74u-5evlhjV4jeLAt7p-OxupVF2bOg8ajncbCkpr6WpW4/exec';
+        // 環境変数またはデフォルト値を使用
+        this.gasUrl = process.env.GAS_WEB_APP_URL || 'https://script.google.com/macros/s/AKfycbyTwjTI134z5KkC3110WRS74u-5evlhjV4jeLAt7p-OxupVF2bOg8ajncbCkpr6WpW4/exec';
+        console.log('GAS URL:', this.gasUrl);
     }
 
     // ユーザー関連のメソッド
