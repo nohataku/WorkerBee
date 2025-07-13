@@ -113,13 +113,26 @@ class UIManager {
         this.ganttManager.loadTasks(tasks);
     }
 
-    renderTasks() {
+    async renderTasks() {
         try {
             const tasks = this.taskManager.getTasks();
             const user = this.authManager.getUser();
-            const allUsers = this.taskManager.getAllUsers();
+            let allUsers = this.taskManager.getAllUsers();
+            
+            // ユーザーリストが空の場合は読み込み
+            if (allUsers.length === 0) {
+                console.log('AllUsers is empty, loading users...');
+                allUsers = await this.taskManager.loadAllUsers();
+            }
+            
             const container = document.getElementById('tasksList');
             const emptyState = document.getElementById('tasksEmpty');
+            
+            console.log('=== UIManager.renderTasks DEBUG ===');
+            console.log('Tasks count:', tasks.length);
+            console.log('Current user:', user);
+            console.log('AllUsers count:', allUsers.length);
+            console.log('AllUsers data:', allUsers);
             
             if (!container || !emptyState) {
                 console.error('Task container elements not found');
@@ -156,10 +169,22 @@ class UIManager {
         }
     }
 
-    renderRecentTasks(tasks) {
+    async renderRecentTasks(tasks) {
         const user = this.authManager.getUser();
-        const allUsers = this.taskManager.getAllUsers();
+        let allUsers = this.taskManager.getAllUsers();
+        
+        // ユーザーリストが空の場合は読み込み
+        if (allUsers.length === 0) {
+            console.log('AllUsers is empty in renderRecentTasks, loading users...');
+            allUsers = await this.taskManager.loadAllUsers();
+        }
+        
         const container = document.getElementById('recentTasks');
+        
+        console.log('=== UIManager.renderRecentTasks DEBUG ===');
+        console.log('Recent tasks count:', tasks.length);
+        console.log('AllUsers count:', allUsers.length);
+        console.log('AllUsers data:', allUsers);
         
         if (!container) {
             console.error('Recent tasks container not found');

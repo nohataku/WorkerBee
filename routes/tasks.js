@@ -27,20 +27,98 @@ router.get('/', [
 
         console.log('Getting tasks with filters:', { status, priority, search, limit, sortBy, sortOrder });
 
-        // GASから全タスクを取得
-        let tasks = await gasService.getTasks();
+        // GASから全タスクとユーザーを並行取得
+        const [tasks, users] = await Promise.all([
+            gasService.getTasks(),
+            gasService.getUsers()
+        ]);
         
         console.log('Raw tasks from GAS:', tasks?.length || 0);
+        console.log('Raw users from GAS:', users?.length || 0);
 
-        // タスクが配列でない場合の処理
-        if (!Array.isArray(tasks)) {
-            console.warn('Tasks from GAS is not an array:', tasks);
-            tasks = [];
-        }
+        // タスクとユーザーが配列でない場合の処理
+        const tasksArray = Array.isArray(tasks) ? tasks : [];
+        const usersArray = Array.isArray(users) ? users : [];
+
+        // ユーザーマップを作成（高速検索用）
+        const userMap = new Map();
+        usersArray.forEach(user => {
+            if (user._id || user.id) {
+                userMap.set(user._id || user.id, user);
+            }
+        });
+
+        console.log('User map created with', userMap.size, 'users');
 
         // データの正規化（フロントエンドが期待する形式に変換）
-        tasks = tasks.map(task => {
+        const normalizedTasks = tasksArray.map(task => {
             try {
+                // 担当者情報の取得
+                let assignedToInfo = {
+                    _id: 'unknown',
+                    displayName: '未割り当て',
+                    email: ''
+                };
+
+                if (task.assignedTo) {
+                    if (typeof task.assignedTo === 'object' && task.assignedTo.displayName) {
+                        // 既にオブジェクト形式の場合
+                        assignedToInfo = {
+                            _id: task.assignedTo._id || task.assignedTo.id || 'unknown',
+                            displayName: task.assignedTo.displayName,
+                            email: task.assignedTo.email || ''
+                        };
+                    } else if (typeof task.assignedTo === 'string') {
+                        // IDの場合、ユーザーマップから検索
+                        const assignedUser = userMap.get(task.assignedTo);
+                        if (assignedUser) {
+                            assignedToInfo = {
+                                _id: assignedUser._id || assignedUser.id,
+                                displayName: assignedUser.displayName || assignedUser.username || assignedUser.email,
+                                email: assignedUser.email || ''
+                            };
+                        } else {
+                            // ユーザーが見つからない場合、IDを保持
+                            assignedToInfo._id = task.assignedTo;
+                        }
+                    }
+                }
+                // assignedToNameが設定されている場合は上書き
+                if (task.assignedToName) {
+                    assignedToInfo.displayName = task.assignedToName;
+                }
+
+                // 作成者情報の取得
+                let createdByInfo = {
+                    _id: req.user?._id || 'unknown',
+                    displayName: req.user?.displayName || '不明',
+                    email: req.user?.email || ''
+                };
+
+                if (task.createdBy) {
+                    if (typeof task.createdBy === 'object' && task.createdBy.displayName) {
+                        createdByInfo = {
+                            _id: task.createdBy._id || task.createdBy.id || 'unknown',
+                            displayName: task.createdBy.displayName,
+                            email: task.createdBy.email || ''
+                        };
+                    } else if (typeof task.createdBy === 'string') {
+                        const createdUser = userMap.get(task.createdBy);
+                        if (createdUser) {
+                            createdByInfo = {
+                                _id: createdUser._id || createdUser.id,
+                                displayName: createdUser.displayName || createdUser.username || createdUser.email,
+                                email: createdUser.email || ''
+                            };
+                        } else {
+                            createdByInfo._id = task.createdBy;
+                        }
+                    }
+                }
+                if (task.createdByName) {
+                    createdByInfo.displayName = task.createdByName;
+                }
+
                 return {
                     _id: task._id || task.id || Date.now().toString(),
                     title: task.title || 'タイトルなし',
@@ -51,16 +129,8 @@ router.get('/', [
                     dueDate: task.dueDate || null,
                     createdAt: task.createdAt || new Date().toISOString(),
                     updatedAt: task.updatedAt || new Date().toISOString(),
-                    assignedTo: {
-                        _id: task.assignedTo?._id || task.assignedTo || 'unknown',
-                        displayName: task.assignedTo?.displayName || task.assignedToName || '未割り当て',
-                        email: task.assignedTo?.email || ''
-                    },
-                    createdBy: {
-                        _id: task.createdBy?._id || task.createdBy || req.user?._id || 'unknown',
-                        displayName: task.createdBy?.displayName || task.createdByName || req.user?.displayName || '不明',
-                        email: task.createdBy?.email || req.user?.email || ''
-                    }
+                    assignedTo: assignedToInfo,
+                    createdBy: createdByInfo
                 };
             } catch (error) {
                 console.error('Error normalizing task:', error, task);
@@ -68,27 +138,29 @@ router.get('/', [
             }
         }).filter(task => task !== null);
 
-        console.log('Normalized tasks:', tasks.length);
+        console.log('Normalized tasks:', normalizedTasks.length);
 
         // フィルタリング
+        let filteredTasks = normalizedTasks;
+        
         if (status !== 'all') {
-            tasks = tasks.filter(task => task.status === status);
+            filteredTasks = filteredTasks.filter(task => task.status === status);
         }
 
         if (priority) {
-            tasks = tasks.filter(task => task.priority === priority);
+            filteredTasks = filteredTasks.filter(task => task.priority === priority);
         }
 
         if (search) {
             const searchLower = search.toLowerCase();
-            tasks = tasks.filter(task => 
+            filteredTasks = filteredTasks.filter(task => 
                 task.title.toLowerCase().includes(searchLower) ||
                 (task.description && task.description.toLowerCase().includes(searchLower))
             );
         }
 
         // ソート
-        tasks.sort((a, b) => {
+        filteredTasks.sort((a, b) => {
             const aValue = new Date(a[sortBy] || a.createdAt);
             const bValue = new Date(b[sortBy] || b.createdAt);
             return sortOrder === 'desc' ? bValue - aValue : aValue - bValue;
@@ -97,16 +169,16 @@ router.get('/', [
         // 制限
         const limitNum = parseInt(limit) || 50;
         if (limitNum > 0) {
-            tasks = tasks.slice(0, limitNum);
+            filteredTasks = filteredTasks.slice(0, limitNum);
         }
 
-        console.log('Final filtered tasks:', tasks.length);
+        console.log('Final filtered tasks:', filteredTasks.length);
 
         res.json({
             success: true,
             data: {
-                tasks,
-                total: tasks.length
+                tasks: filteredTasks,
+                total: filteredTasks.length
             }
         });
 
@@ -341,8 +413,11 @@ router.get('/:id', async (req, res) => {
         const taskId = req.params.id;
         console.log('Getting task details for ID:', taskId);
 
-        // GASから全タスクを取得して指定IDを検索
-        const allTasks = await gasService.getTasks();
+        // GASから全タスクとユーザーを並行取得
+        const [allTasks, users] = await Promise.all([
+            gasService.getTasks(),
+            gasService.getUsers()
+        ]);
         
         if (!Array.isArray(allTasks)) {
             console.warn('Tasks from GAS is not an array:', allTasks);
@@ -352,6 +427,15 @@ router.get('/:id', async (req, res) => {
             });
         }
 
+        // ユーザーマップを作成
+        const usersArray = Array.isArray(users) ? users : [];
+        const userMap = new Map();
+        usersArray.forEach(user => {
+            if (user._id || user.id) {
+                userMap.set(user._id || user.id, user);
+            }
+        });
+
         // 指定されたIDのタスクを検索
         const task = allTasks.find(t => t._id === taskId || t.id === taskId);
         
@@ -360,6 +444,68 @@ router.get('/:id', async (req, res) => {
                 success: false,
                 message: 'タスクが見つかりません'
             });
+        }
+
+        // 担当者情報の取得
+        let assignedToInfo = {
+            _id: 'unknown',
+            displayName: '未割り当て',
+            email: ''
+        };
+
+        if (task.assignedTo) {
+            if (typeof task.assignedTo === 'object' && task.assignedTo.displayName) {
+                assignedToInfo = {
+                    _id: task.assignedTo._id || task.assignedTo.id || 'unknown',
+                    displayName: task.assignedTo.displayName,
+                    email: task.assignedTo.email || ''
+                };
+            } else if (typeof task.assignedTo === 'string') {
+                const assignedUser = userMap.get(task.assignedTo);
+                if (assignedUser) {
+                    assignedToInfo = {
+                        _id: assignedUser._id || assignedUser.id,
+                        displayName: assignedUser.displayName || assignedUser.username || assignedUser.email,
+                        email: assignedUser.email || ''
+                    };
+                } else {
+                    assignedToInfo._id = task.assignedTo;
+                }
+            }
+        }
+        if (task.assignedToName) {
+            assignedToInfo.displayName = task.assignedToName;
+        }
+
+        // 作成者情報の取得
+        let createdByInfo = {
+            _id: req.user?._id || 'unknown',
+            displayName: req.user?.displayName || '不明',
+            email: req.user?.email || ''
+        };
+
+        if (task.createdBy) {
+            if (typeof task.createdBy === 'object' && task.createdBy.displayName) {
+                createdByInfo = {
+                    _id: task.createdBy._id || task.createdBy.id || 'unknown',
+                    displayName: task.createdBy.displayName,
+                    email: task.createdBy.email || ''
+                };
+            } else if (typeof task.createdBy === 'string') {
+                const createdUser = userMap.get(task.createdBy);
+                if (createdUser) {
+                    createdByInfo = {
+                        _id: createdUser._id || createdUser.id,
+                        displayName: createdUser.displayName || createdUser.username || createdUser.email,
+                        email: createdUser.email || ''
+                    };
+                } else {
+                    createdByInfo._id = task.createdBy;
+                }
+            }
+        }
+        if (task.createdByName) {
+            createdByInfo.displayName = task.createdByName;
         }
 
         // データの正規化
@@ -373,16 +519,8 @@ router.get('/:id', async (req, res) => {
             dueDate: task.dueDate || null,
             createdAt: task.createdAt || new Date().toISOString(),
             updatedAt: task.updatedAt || new Date().toISOString(),
-            assignedTo: {
-                _id: task.assignedTo?._id || task.assignedTo || 'unknown',
-                displayName: task.assignedTo?.displayName || task.assignedToName || '未割り当て',
-                email: task.assignedTo?.email || ''
-            },
-            createdBy: {
-                _id: task.createdBy?._id || task.createdBy || req.user?._id || 'unknown',
-                displayName: task.createdBy?.displayName || task.createdByName || req.user?.displayName || '不明',
-                email: task.createdBy?.email || req.user?.email || ''
-            }
+            assignedTo: assignedToInfo,
+            createdBy: createdByInfo
         };
 
         console.log('Task details retrieved:', normalizedTask);

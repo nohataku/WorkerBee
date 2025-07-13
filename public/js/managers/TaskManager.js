@@ -328,13 +328,13 @@ class TaskManager {
             if (response && Array.isArray(response)) {
                 // GAS環境では、レスポンスが直接配列で返される
                 this.allUsers = response;
-                console.log('All users loaded from API:', this.allUsers.length, 'users');
+                console.log('All users loaded from API (Array):', this.allUsers.length, 'users');
                 console.log('User data:', this.allUsers);
                 return this.allUsers;
             } else if (response && response.success && response.data) {
                 // Node.js環境では、success/data形式で返される
                 this.allUsers = response.data.users || response.data || [];
-                console.log('All users loaded from API:', this.allUsers.length, 'users');
+                console.log('All users loaded from API (Object):', this.allUsers.length, 'users');
                 console.log('User data:', this.allUsers);
                 return this.allUsers;
             } else {
@@ -350,6 +350,8 @@ class TaskManager {
     }
 
     getAllUsers() {
+        console.log('TaskManager.getAllUsers called, returning:', this.allUsers.length, 'users');
+        console.log('AllUsers data:', this.allUsers);
         return this.allUsers;
     }
 

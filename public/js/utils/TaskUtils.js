@@ -53,6 +53,13 @@ class TaskUtils {
                 throw new Error('Invalid task data');
             }
 
+            // デバッグ用ログ
+            console.log('=== TaskUtils.createTaskHTML DEBUG ===');
+            console.log('Task:', task);
+            console.log('Task.assignedTo:', task.assignedTo);
+            console.log('AllUsers count:', allUsers.length);
+            console.log('AllUsers:', allUsers);
+
             const dueDate = task.dueDate ? new Date(task.dueDate) : null;
             const isOverdue = dueDate && dueDate < new Date() && !task.completed;
             const dueDateStr = dueDate ? TaskUtils.formatDate(dueDate) : '';
@@ -63,6 +70,7 @@ class TaskUtils {
             
             // まず、task.assignedToから直接取得を試行
             if (task.assignedTo && task.assignedTo.displayName) {
+                console.log('Case 1: task.assignedTo has displayName');
                 assigneeName = task.assignedTo.displayName;
                 assigneeInitials = assigneeName
                     .split(' ')
@@ -72,7 +80,9 @@ class TaskUtils {
             } 
             // task.assignedToがIDの場合、allUsersから該当ユーザーを検索
             else if (task.assignedTo && typeof task.assignedTo === 'string' && allUsers.length > 0) {
+                console.log('Case 2: task.assignedTo is string ID, searching in allUsers');
                 const assignedUser = allUsers.find(user => user._id === task.assignedTo || user.email === task.assignedTo);
+                console.log('Found user:', assignedUser);
                 if (assignedUser) {
                     assigneeName = assignedUser.displayName || assignedUser.username || assignedUser.email || '不明';
                     assigneeInitials = assigneeName
@@ -84,7 +94,9 @@ class TaskUtils {
             }
             // task.assignedTo._idの場合、allUsersから該当ユーザーを検索
             else if (task.assignedTo && task.assignedTo._id && allUsers.length > 0) {
+                console.log('Case 3: task.assignedTo has _id, searching in allUsers');
                 const assignedUser = allUsers.find(user => user._id === task.assignedTo._id || user.email === task.assignedTo.email);
+                console.log('Found user:', assignedUser);
                 if (assignedUser) {
                     assigneeName = assignedUser.displayName || assignedUser.username || assignedUser.email || '不明';
                     assigneeInitials = assigneeName
@@ -94,6 +106,22 @@ class TaskUtils {
                         .toUpperCase();
                 }
             }
+            // assignedToNameが直接設定されている場合（後方互換性）
+            else if (task.assignedToName) {
+                console.log('Case 4: using task.assignedToName');
+                assigneeName = task.assignedToName;
+                assigneeInitials = assigneeName
+                    .split(' ')
+                    .map(name => name[0])
+                    .join('')
+                    .toUpperCase();
+            }
+            else {
+                console.log('Case 5: No assignee found, using default');
+            }
+
+            console.log('Final assignee name:', assigneeName);
+            console.log('Final assignee initials:', assigneeInitials);
 
             // createdByの安全な処理と権限チェック
             const canEdit = true; // すべてのユーザーがタスクを編集可能にする
