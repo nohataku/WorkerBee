@@ -53,6 +53,14 @@ class TaskUtils {
                 throw new Error('Invalid task data');
             }
 
+            const dueDate = task.dueDate ? new Date(task.dueDate) : null;
+            const isOverdue = dueDate && dueDate < new Date() && !task.completed;
+            const dueDateStr = dueDate ? TaskUtils.formatDate(dueDate) : '';
+            
+            // assignedToの安全な処理
+            let assigneeInitials = '';
+            let assigneeName = '未割り当て';
+
             // デバッグ用ログ（本番環境でも一時的に有効）
             if (allUsers.length === 0 || (task.assignedTo && assigneeName === '未割り当て')) {
                 console.log('=== TaskUtils.createTaskHTML DEBUG ===');
@@ -62,14 +70,6 @@ class TaskUtils {
                 console.log('AllUsers count:', allUsers.length);
                 console.log('AllUsers sample:', allUsers.slice(0, 2));
             }
-
-            const dueDate = task.dueDate ? new Date(task.dueDate) : null;
-            const isOverdue = dueDate && dueDate < new Date() && !task.completed;
-            const dueDateStr = dueDate ? TaskUtils.formatDate(dueDate) : '';
-            
-            // assignedToの安全な処理
-            let assigneeInitials = '';
-            let assigneeName = '未割り当て';
             
             // まず、task.assignedToから直接取得を試行
             if (task.assignedTo && task.assignedTo.displayName) {
