@@ -6,6 +6,11 @@ class TaskManager {
         this.tasks = [];
         this.currentEditingTask = null;
         this.allUsers = [];
+        this.uiManager = null; // UIManagerの参照を保持
+    }
+
+    setUIManager(uiManager) {
+        this.uiManager = uiManager;
     }
 
     getTasks() {
@@ -46,16 +51,19 @@ class TaskManager {
                 // レスポンスに直接tasksプロパティがある場合
                 this.tasks = response.tasks || [];
                 console.log('Tasks loaded from response.tasks:', this.tasks.length);
+                this.updateViews();
                 return this.tasks;
             } else if (Array.isArray(response)) {
                 // レスポンスが直接配列の場合（GAS環境の可能性）
                 this.tasks = response;
                 console.log('Tasks loaded from array response:', this.tasks.length);
+                this.updateViews();
                 return this.tasks;
             } else if (response && response.success && response.data) {
                 // Node.js環境ではsuccess/data形式
                 this.tasks = response.data.tasks || [];
                 console.log('Tasks loaded from response.data.tasks:', this.tasks.length);
+                this.updateViews();
                 return this.tasks;
             } else {
                 console.error('Failed to load tasks:', response);
@@ -343,5 +351,12 @@ class TaskManager {
 
     getAllUsers() {
         return this.allUsers;
+    }
+
+    updateViews() {
+        // UIManagerが設定されている場合、ビューを更新
+        if (this.uiManager) {
+            this.uiManager.updateViews();
+        }
     }
 }

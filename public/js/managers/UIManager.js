@@ -4,6 +4,8 @@ class UIManager {
         this.taskManager = taskManager;
         this.notificationManager = notificationManager;
         this.currentView = 'dashboard';
+        this.calendarManager = null;
+        this.ganttManager = null;
     }
 
     showAuthContainer() {
@@ -43,19 +45,72 @@ class UIManager {
     }
 
     showView(viewName) {
+        console.log('Switching to view:', viewName);
+        
         // ナビゲーションアイテムの更新
         document.querySelectorAll('.nav-item').forEach(item => {
             item.classList.remove('active');
         });
-        document.querySelector(`[data-view="${viewName}"]`).classList.add('active');
+        const navItem = document.querySelector(`[data-view="${viewName}"]`);
+        if (navItem) {
+            navItem.classList.add('active');
+        } else {
+            console.error('Navigation item not found for view:', viewName);
+        }
 
         // ビューの切り替え
         document.querySelectorAll('.view').forEach(view => {
             view.classList.remove('active');
         });
-        document.getElementById(`${viewName}View`).classList.add('active');
+        const viewElement = document.getElementById(`${viewName}View`);
+        if (viewElement) {
+            viewElement.classList.add('active');
+            console.log('View element shown:', viewName);
+        } else {
+            console.error('View element not found:', `${viewName}View`);
+        }
 
         this.currentView = viewName;
+        
+        // カレンダービューの初期化
+        if (viewName === 'calendar') {
+            console.log('Calendar view selected');
+            setTimeout(() => this.initCalendarView(), 100);
+        }
+        
+        // ガントチャートビューの初期化
+        if (viewName === 'gantt') {
+            console.log('Gantt view selected');
+            setTimeout(() => this.initGanttView(), 100);
+        }
+    }
+
+    initCalendarView() {
+        console.log('Initializing calendar view...');
+        if (!this.calendarManager) {
+            console.log('Creating new CalendarManager...');
+            this.calendarManager = new CalendarManager(this.taskManager, this.notificationManager);
+            this.calendarManager.init();
+        }
+        
+        // タスクデータを読み込み
+        const tasks = this.taskManager.getTasks();
+        console.log('Loading tasks to calendar:', tasks.length, 'tasks');
+        this.calendarManager.loadTasks(tasks);
+    }
+
+    initGanttView() {
+        console.log('Initializing gantt view...');
+        if (!this.ganttManager) {
+            console.log('Creating new GanttManager...');
+            this.ganttManager = new GanttManager(this.taskManager, this.notificationManager);
+            this.ganttManager.init();
+        }
+        
+        // タスクデータを読み込み
+        const tasks = this.taskManager.getTasks();
+        console.log('Loading tasks to gantt:', tasks.length, 'tasks');
+        this.ganttManager.loadTasks(tasks);
     }
 
     renderTasks() {
@@ -163,9 +218,15 @@ class UIManager {
 
     hideTaskModal() {
         try {
+            console.log('=== HIDING TASK MODAL ===');
             const modal = document.getElementById('taskModal');
             if (modal) {
                 modal.classList.remove('show');
+                // 直接設定されたstyleもクリア
+                modal.style.display = '';
+                console.log('Modal hidden successfully');
+            } else {
+                console.error('Task modal element not found');
             }
             
             // フォームをリセット
@@ -353,6 +414,27 @@ class UIManager {
         } catch (error) {
             console.error('Error in populateTaskEditForm:', error);
             this.notificationManager.show('error', 'エラー', `タスク編集フォームの表示中にエラーが発生しました: ${error.message}`);
+        }
+    }
+
+    updateViews() {
+        // 現在のビューに応じてデータを更新
+        const tasks = this.taskManager.getTasks();
+        
+        if (this.calendarManager) {
+            this.calendarManager.loadTasks(tasks);
+        }
+        
+        if (this.ganttManager) {
+            this.ganttManager.loadTasks(tasks);
+        }
+    }
+
+    refreshCurrentView() {
+        if (this.currentView === 'calendar' && this.calendarManager) {
+            this.calendarManager.refreshCalendar();
+        } else if (this.currentView === 'gantt' && this.ganttManager) {
+            this.ganttManager.refreshGantt();
         }
     }
 }

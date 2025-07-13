@@ -22,6 +22,11 @@
     <link rel="stylesheet" href="css/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- カレンダー・ガントチャート用ライブラリ -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+    <link href="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.css" rel="stylesheet">
+    
     <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
 </head>
 <body>
@@ -151,6 +156,9 @@
                 <a href="#" class="nav-item" data-view="calendar">
                     <i class="fas fa-calendar"></i> カレンダー
                 </a>
+                <a href="#" class="nav-item" data-view="gantt">
+                    <i class="fas fa-chart-gantt"></i> ガントチャート
+                </a>
                 <a href="#" class="nav-item" data-view="projects">
                     <i class="fas fa-folder"></i> プロジェクト
                 </a>
@@ -258,13 +266,64 @@
                 </div>
             </div>
 
-            <!-- その他のビュー（プレースホルダー） -->
+            <!-- カレンダービュー -->
             <div id="calendarView" class="view">
                 <div class="view-header">
                     <h2>カレンダー</h2>
+                    <div class="view-actions">
+                        <div class="calendar-controls">
+                            <button class="btn btn-secondary" id="calendarToday">今日</button>
+                            <button class="btn btn-secondary" id="calendarPrev">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <button class="btn btn-secondary" id="calendarNext">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                        <div class="calendar-view-buttons">
+                            <button class="btn btn-outline" id="calendarMonth">月</button>
+                            <button class="btn btn-outline" id="calendarWeek">週</button>
+                            <button class="btn btn-outline" id="calendarDay">日</button>
+                        </div>
+                        <button class="btn btn-primary" id="addTaskFromCalendar">
+                            <i class="fas fa-plus"></i> 新しいタスク
+                        </button>
+                    </div>
                 </div>
-                <p>カレンダービューは今後実装予定です。</p>
+                <div class="calendar-container">
+                    <div id="calendar"></div>
+                </div>
             </div>
+
+            <!-- ガントチャートビュー -->
+            <div id="ganttView" class="view">
+                <div class="view-header">
+                    <h2>ガントチャート</h2>
+                    <div class="view-actions">
+                        <div class="gantt-controls">
+                            <button class="btn btn-secondary" id="ganttZoomIn">
+                                <i class="fas fa-search-plus"></i> ズームイン
+                            </button>
+                            <button class="btn btn-secondary" id="ganttZoomOut">
+                                <i class="fas fa-search-minus"></i> ズームアウト
+                            </button>
+                            <select id="ganttScale" class="btn btn-secondary">
+                                <option value="day">日</option>
+                                <option value="week" selected>週</option>
+                                <option value="month">月</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" id="addTaskFromGantt">
+                            <i class="fas fa-plus"></i> 新しいタスク
+                        </button>
+                    </div>
+                </div>
+                <div class="gantt-container">
+                    <div id="gantt_here"></div>
+                </div>
+            </div>
+
+            <!-- その他のビュー（プレースホルダー） -->
 
             <div id="projectsView" class="view">
                 <div class="view-header">
@@ -334,10 +393,24 @@
     <!-- 通知エリア -->
     <div id="notifications" class="notifications"></div>
 
+    <!-- 外部ライブラリ -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+    <script src="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.js"></script>
+    
+    <!-- ライブラリ読み込み確認 -->
+    <script>
+        window.addEventListener('load', function() {
+            console.log('Window loaded. Checking libraries...');
+            console.log('FullCalendar available:', typeof FullCalendar !== 'undefined');
+            console.log('DHTMLX Gantt available:', typeof gantt !== 'undefined');
+        });
+    </script>
+
     <!-- 設定ファイル（最初に読み込み） -->
     <script src="js/config.js"></script>
     
     <!-- ユーティリティクラス -->
+    <script src="js/utils/LibraryLoader.js"></script>
     <script src="js/utils/PasswordUtils.js"></script>
     <script src="js/utils/TaskUtils.js"></script>
     
@@ -349,6 +422,8 @@
     <script src="js/managers/SocketManager.js"></script>
     <script src="js/managers/AuthManager.js"></script>
     <script src="js/managers/TaskManager.js"></script>
+    <script src="js/managers/CalendarManager.js"></script>
+    <script src="js/managers/GanttManager.js"></script>
     <script src="js/managers/UIManager.js"></script>
     <script src="js/managers/EventManager.js"></script>
     

@@ -35,6 +35,9 @@ class WorkerBeeApp {
             this.notificationManager
         );
         
+        // TaskManagerにUIManagerの参照を設定
+        this.taskManager.setUIManager(this.uiManager);
+        
         // イベントマネージャーの初期化
         this.eventManager = new EventManager(
             this.authManager,
@@ -48,8 +51,18 @@ class WorkerBeeApp {
     }
 
     async init() {
-        this.eventManager.bindEvents();
-        await this.checkAuthentication();
+        try {
+            console.log('Initializing WorkerBee...');
+            
+            // ライブラリの読み込み完了を待機
+            await LibraryLoader.waitForLibraries();
+            
+            this.eventManager.bindEvents();
+            await this.checkAuthentication();
+        } catch (error) {
+            console.error('Failed to initialize WorkerBee:', error);
+            this.notificationManager.show('error', '初期化エラー', 'アプリケーションの初期化に失敗しました');
+        }
     }
 
     async checkAuthentication() {

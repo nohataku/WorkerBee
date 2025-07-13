@@ -22,38 +22,49 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000;
 
-// セキュリティミドルウェア（CSP設定を緩和）
-app.use(helmet({
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: [
-                "'self'",
-                "'unsafe-inline'",
-                "https://cdn.socket.io",
-                "https://cdnjs.cloudflare.com",
-                "https://fonts.googleapis.com"
-            ],
-            styleSrc: [
-                "'self'",
-                "'unsafe-inline'",
-                "https://fonts.googleapis.com",
-                "https://cdnjs.cloudflare.com"
-            ],
-            fontSrc: [
-                "'self'",
-                "https://fonts.gstatic.com",
-                "https://cdnjs.cloudflare.com"
-            ],
-            connectSrc: [
-                "'self'",
-                "ws://localhost:3000",
-                "wss://localhost:3000",
-                "https://script.google.com"
-            ]
+// セキュリティミドルウェア（開発環境でCSPを無効化）
+if (process.env.NODE_ENV === 'production') {
+    app.use(helmet({
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: [
+                    "'self'",
+                    "'unsafe-inline'",
+                    "https://cdn.socket.io",
+                    "https://cdnjs.cloudflare.com",
+                    "https://fonts.googleapis.com",
+                    "https://cdn.jsdelivr.net",
+                    "https://cdn.dhtmlx.com"
+                ],
+                styleSrc: [
+                    "'self'",
+                    "'unsafe-inline'",
+                    "https://fonts.googleapis.com",
+                    "https://cdnjs.cloudflare.com",
+                    "https://cdn.jsdelivr.net",
+                    "https://cdn.dhtmlx.com"
+                ],
+                fontSrc: [
+                    "'self'",
+                    "https://fonts.gstatic.com",
+                    "https://cdnjs.cloudflare.com"
+                ],
+                connectSrc: [
+                    "'self'",
+                    "ws://localhost:3000",
+                    "wss://localhost:3000",
+                    "https://script.google.com"
+                ]
+            }
         }
-    }
-}));
+    }));
+} else {
+    // 開発環境ではCSPを無効化
+    app.use(helmet({
+        contentSecurityPolicy: false
+    }));
+}
 app.use(cors());
 
 // レート制限

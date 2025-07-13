@@ -71,20 +71,43 @@ class EventManager {
 
     bindModalEvents() {
         // タスクモーダル
-        document.getElementById('taskModalClose').addEventListener('click', () => {
-            this.uiManager.hideTaskModal();
-        });
+        const closeBtn = document.getElementById('taskModalClose');
+        const cancelBtn = document.getElementById('taskModalCancel');
+        const modal = document.getElementById('taskModal');
+        
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                console.log('Close button clicked');
+                e.preventDefault();
+                e.stopPropagation();
+                this.uiManager.hideTaskModal();
+            });
+        } else {
+            console.error('taskModalClose element not found');
+        }
 
-        document.getElementById('taskModalCancel').addEventListener('click', () => {
-            this.uiManager.hideTaskModal();
-        });
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', (e) => {
+                console.log('Cancel button clicked');
+                e.preventDefault();
+                e.stopPropagation();
+                this.uiManager.hideTaskModal();
+            });
+        } else {
+            console.error('taskModalCancel element not found');
+        }
 
         // モーダル外クリック
-        document.getElementById('taskModal').addEventListener('click', (e) => {
-            if (e.target === e.currentTarget) {
-                this.uiManager.hideTaskModal();
-            }
-        });
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === e.currentTarget) {
+                    console.log('Modal backdrop clicked');
+                    this.uiManager.hideTaskModal();
+                }
+            });
+        } else {
+            console.error('taskModal element not found');
+        }
     }
 
     bindFilterEvents() {

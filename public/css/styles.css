@@ -1059,6 +1059,151 @@ body {
     color: #666;
 }
 
+/* カレンダービュー */
+.calendar-container {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    height: calc(100vh - 220px);
+    min-height: 600px;
+    overflow: hidden;
+}
+
+#calendar {
+    height: 100%;
+    min-height: 500px;
+}
+
+.calendar-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.calendar-controls .btn {
+    white-space: nowrap;
+    min-width: auto;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+}
+
+.calendar-view-buttons {
+    display: flex;
+    gap: 5px;
+    margin: 0 20px;
+}
+
+.calendar-view-buttons .btn {
+    padding: 8px 16px;
+    border: 1px solid #ddd;
+    background: white;
+    color: #666;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.calendar-view-buttons .btn:hover,
+.calendar-view-buttons .btn.active {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+/* ガントチャートビュー */
+.gantt-container {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    height: calc(100vh - 220px);
+    min-height: 600px;
+    overflow: hidden;
+}
+
+#gantt_here {
+    height: 100%;
+    width: 100%;
+    min-height: 500px;
+}
+
+.gantt-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.gantt-controls .btn {
+    white-space: nowrap;
+    min-width: auto;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+}
+
+#ganttScale {
+    border: 1px solid #ddd;
+    padding: 8px 12px;
+    border-radius: 4px;
+    background: white;
+    color: #666;
+    cursor: pointer;
+    min-width: 80px;
+}
+
+/* カレンダーイベントのカスタマイズ */
+.fc-event {
+    border: none !important;
+    border-radius: 4px !important;
+    padding: 2px 6px !important;
+    font-size: 12px !important;
+}
+
+.fc-event.priority-low {
+    background: #28a745 !important;
+}
+
+.fc-event.priority-medium {
+    background: #ffc107 !important;
+    color: #333 !important;
+}
+
+.fc-event.priority-high {
+    background: #fd7e14 !important;
+}
+
+.fc-event.priority-urgent {
+    background: #dc3545 !important;
+}
+
+.fc-event.completed {
+    opacity: 0.6 !important;
+    text-decoration: line-through !important;
+}
+
+/* ガントチャートのカスタマイズ */
+.gantt_task_line.priority-low {
+    background: #28a745 !important;
+}
+
+.gantt_task_line.priority-medium {
+    background: #ffc107 !important;
+}
+
+.gantt_task_line.priority-high {
+    background: #fd7e14 !important;
+}
+
+.gantt_task_line.priority-urgent {
+    background: #dc3545 !important;
+}
+
+.gantt_task_line.completed {
+    opacity: 0.6 !important;
+}
+
 /* レスポンシブデザイン */
 @media (max-width: 768px) {
     .app-container {
@@ -1091,6 +1236,12 @@ body {
         flex-direction: column;
         width: 100%;
         gap: 10px;
+        align-items: stretch;
+    }
+
+    .view-actions > * {
+        width: 100%;
+        justify-content: center;
     }
 
     .filter-group {
@@ -1122,6 +1273,25 @@ body {
         left: 10px;
         right: 10px;
         max-width: none;
+    }
+
+    .calendar-container,
+    .gantt-container {
+        height: calc(100vh - 300px);
+        padding: 10px;
+    }
+
+    .calendar-controls,
+    .gantt-controls {
+        justify-content: center;
+        gap: 5px;
+    }
+
+    .calendar-controls .btn,
+    .gantt-controls .btn {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+        min-width: auto;
     }
 }
 
