@@ -9,7 +9,7 @@
     "install-deps": "npm install",
     "build": "mkdir -p dist && cp -r public/* dist/ && touch dist/.nojekyll",
     "build:windows": "if not exist dist mkdir dist && xcopy /E /I public\\* dist\\ && echo. > dist\\.nojekyll",
-    "build:netlify": "if not exist dist mkdir dist && (rmdir /s /q dist 2>nul || echo.) && mkdir dist && xcopy /E /I public\\* dist\\",
+    "build:netlify": "rimraf dist && cpx \"public/**/*\" dist",
     "deploy": "npm run build && echo 'Build completed for GitHub Pages'",
     "deploy:netlify": "npm run build:netlify && echo 'Build completed for Netlify'",
     "serve": "cd public && python -m http.server 8000",
@@ -25,6 +25,7 @@
   "author": "WorkerBee Team",
   "license": "MIT",
   "dependencies": {
+    "axios": "^1.6.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
@@ -33,10 +34,12 @@
     "express-validator": "^7.0.1",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
-    "socket.io": "^4.7.4",
-    "axios": "^1.6.0"
+    "socket.io": "^4.7.4"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "cpx2": "^8.0.0",
+    "cross-env": "^7.0.3",
+    "nodemon": "^3.0.2",
+    "rimraf": "^6.0.1"
   }
 }
