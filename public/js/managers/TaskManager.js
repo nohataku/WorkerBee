@@ -42,13 +42,19 @@ class TaskManager {
             
             console.log('Load tasks response:', response);
             
-            if (response && response.success) {
-                this.tasks = response.data?.tasks || [];
+            if (response && response.tasks) {
+                // GAS環境では直接tasksが返される
+                this.tasks = response.tasks || [];
+                console.log('Tasks loaded:', this.tasks.length);
+                return this.tasks;
+            } else if (response && response.success && response.data) {
+                // Node.js環境ではsuccess/data形式
+                this.tasks = response.data.tasks || [];
                 console.log('Tasks loaded:', this.tasks.length);
                 return this.tasks;
             } else {
                 console.error('Failed to load tasks:', response);
-                this.notificationManager.show('error', 'エラー', response?.message || 'タスクの取得に失敗しました');
+                this.notificationManager.show('error', 'エラー', 'タスクの取得に失敗しました');
                 this.tasks = [];
                 return this.tasks;
             }
@@ -67,8 +73,12 @@ class TaskManager {
             
             console.log('Load recent tasks response:', response);
             
-            if (response && response.success) {
-                return response.data?.tasks || [];
+            if (response && response.tasks) {
+                // GAS環境では直接tasksが返される
+                return response.tasks || [];
+            } else if (response && response.success && response.data) {
+                // Node.js環境ではsuccess/data形式
+                return response.data.tasks || [];
             } else {
                 console.error('Failed to load recent tasks:', response);
                 return [];
@@ -230,7 +240,11 @@ class TaskManager {
         try {
             const response = await this.apiClient.call('/api/tasks/stats/user');
             
-            if (response.success) {
+            if (response && response.stats) {
+                // GAS環境では直接statsが返される
+                return response.stats;
+            } else if (response && response.success && response.data) {
+                // Node.js環境ではsuccess/data形式
                 return response.data.stats;
             }
             return null;
@@ -245,28 +259,30 @@ class TaskManager {
             console.log('=== LOADING ALL USERS ===');
             console.log('Loading all users for dropdown...');
             
-            try {
-                const response = await this.apiClient.call('/api/users');
-                console.log('Users API response:', response);
-                
-                if (response && response.success) {
-                    this.allUsers = response.data.users || [];
-                    console.log('All users loaded from API:', this.allUsers.length, 'users');
-                    console.log('User data:', this.allUsers);
-                    
-                    return this.allUsers;
-                } else {
-                    console.error('Failed to load users from API:', response);
-                    return [];
-                }
-            } catch (apiError) {
-                console.error('API call failed:', apiError);
-                return [];
-            }
+            const response = await this.apiClient.call('/api/users');
+            console.log('Users API response:', response);
             
+            if (response && Array.isArray(response)) {
+                // GAS環境では、レスポンスが直接配列で返される
+                this.allUsers = response;
+                console.log('All users loaded from API:', this.allUsers.length, 'users');
+                console.log('User data:', this.allUsers);
+                return this.allUsers;
+            } else if (response && response.success && response.data) {
+                // Node.js環境では、success/data形式で返される
+                this.allUsers = response.data.users || response.data || [];
+                console.log('All users loaded from API:', this.allUsers.length, 'users');
+                console.log('User data:', this.allUsers);
+                return this.allUsers;
+            } else {
+                console.log('No users data in response:', response);
+                this.allUsers = [];
+                return this.allUsers;
+            }
         } catch (error) {
             console.error('Load all users error:', error);
-            return [];
+            this.allUsers = [];
+            return this.allUsers;
         }
     }
 

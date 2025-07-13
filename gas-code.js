@@ -143,6 +143,9 @@ function doPost(e) {
       case 'getTasks':
         result = handleGetTasks(requestBody.payload);
         break;
+      case 'getUserStats':
+        result = handleGetUserStats(requestBody.payload);
+        break;
       case 'createTask':
         result = handleCreateTask(requestBody.payload);
         break;
@@ -228,14 +231,77 @@ function handleGetUsers() {
   });
 }
 
+function handleGetUserStats(payload) {
+  try {
+    const tasks = sheetToObjects(tasksSheet);
+    
+    // 各ステータスのタスク数を計算
+    const stats = {
+      total: tasks.length,
+      pending: tasks.filter(task => task.status === 'pending').length,
+      'in-progress': tasks.filter(task => task.status === 'in-progress').length,
+      completed: tasks.filter(task => task.status === 'completed').length,
+      cancelled: tasks.filter(task => task.status === 'cancelled').length
+    };
+    
+    return { stats: stats };
+  } catch (error) {
+    console.error('Error getting user stats:', error);
+    throw new Error('Failed to load user statistics');
+  }
+}
+
 function handleGetUsersWithPasswords() {
   // 認証目的でのみ使用 - ハッシュ化されたパスワードを含む
   return sheetToObjects(usersSheet);
 }
 
 // Task Handlers
-function handleGetTasks() {
-  return sheetToObjects(tasksSheet);
+function handleGetTasks(payload = {}) {
+  try {
+    let tasks = sheetToObjects(tasksSheet);
+    
+    // フィルタリング処理
+    if (payload.status && payload.status !== 'all') {
+      tasks = tasks.filter(task => task.status === payload.status);
+    }
+    
+    if (payload.priority) {
+      tasks = tasks.filter(task => task.priority === payload.priority);
+    }
+    
+    // ソート処理
+    if (payload.sortBy) {
+      const sortOrder = payload.sortOrder === 'desc' ? -1 : 1;
+      tasks.sort((a, b) => {
+        const aVal = a[payload.sortBy];
+        const bVal = b[payload.sortBy];
+        
+        if (payload.sortBy === 'createdAt' || payload.sortBy === 'updatedAt' || payload.sortBy === 'dueDate') {
+          // 日付の比較
+          const aDate = new Date(aVal || 0);
+          const bDate = new Date(bVal || 0);
+          return sortOrder * (aDate - bDate);
+        } else {
+          // 文字列の比較
+          return sortOrder * (aVal || '').localeCompare(bVal || '');
+        }
+      });
+    }
+    
+    // リミット処理
+    if (payload.limit) {
+      const limit = parseInt(payload.limit);
+      if (!isNaN(limit) && limit > 0) {
+        tasks = tasks.slice(0, limit);
+      }
+    }
+    
+    return { tasks: tasks };
+  } catch (error) {
+    console.error('Error getting tasks:', error);
+    throw new Error('Failed to load tasks');
+  }
 }
 
 function handleCreateTask(payload) {

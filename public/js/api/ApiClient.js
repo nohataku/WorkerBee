@@ -41,10 +41,22 @@ class ApiClient {
                 fullUrl = this.config.gas.webAppUrl;
                 requestMethod = 'POST'; // GASは常にPOST
                 
+                // クエリパラメータを抽出してpayloadに含める
+                const urlParts = url.split('?');
+                const baseUrl = urlParts[0];
+                const queryParams = {};
+                
+                if (urlParts[1]) {
+                    const searchParams = new URLSearchParams(urlParts[1]);
+                    for (const [key, value] of searchParams) {
+                        queryParams[key] = value;
+                    }
+                }
+                
                 // GAS用のデータ形式に変換
                 requestData = {
-                    action: this.extractActionFromUrl(url, method),
-                    payload: data || {}
+                    action: this.extractActionFromUrl(baseUrl, method),
+                    payload: { ...queryParams, ...(data || {}) }
                 };
                 
                 // GASでは認証情報をpayloadに含める
@@ -121,15 +133,19 @@ class ApiClient {
             'POST/api/auth/login': 'login',
             'POST/api/auth/register': 'register',
             'GET/api/auth/me': 'getCurrentUser',
+            'GET/api/auth/verify': 'verifyAuth',
             'POST/api/auth/logout': 'logout',
             'GET/api/tasks': 'getTasks',
             'POST/api/tasks': 'createTask',
             'PUT/api/tasks': 'updateTask',
             'DELETE/api/tasks': 'deleteTask',
+            'GET/api/tasks/stats/user': 'getUserStats',
             'GET/api/users': 'getUsers'
         };
         
-        const key = `${method}${url}`;
+        // クエリパラメータを除去してベースURLを取得
+        const baseUrl = url.split('?')[0];
+        const key = `${method}${baseUrl}`;
         return urlMap[key] || 'unknown';
     }
 }
