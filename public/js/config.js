@@ -67,6 +67,7 @@ const config = {
 function getCurrentEnvironment() {
     const hostname = window.location.hostname;
     const port = window.location.port;
+    const pathname = window.location.pathname;
     
     // ローカル開発環境の判定
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
