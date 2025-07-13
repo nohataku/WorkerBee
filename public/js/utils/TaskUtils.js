@@ -53,12 +53,15 @@ class TaskUtils {
                 throw new Error('Invalid task data');
             }
 
-            // デバッグ用ログ
-            console.log('=== TaskUtils.createTaskHTML DEBUG ===');
-            console.log('Task:', task);
-            console.log('Task.assignedTo:', task.assignedTo);
-            console.log('AllUsers count:', allUsers.length);
-            console.log('AllUsers:', allUsers);
+            // デバッグ用ログ（本番環境でも一時的に有効）
+            if (allUsers.length === 0 || (task.assignedTo && assigneeName === '未割り当て')) {
+                console.log('=== TaskUtils.createTaskHTML DEBUG ===');
+                console.log('Task ID:', taskId);
+                console.log('Task.assignedTo:', task.assignedTo);
+                console.log('Task.assignedToName:', task.assignedToName);
+                console.log('AllUsers count:', allUsers.length);
+                console.log('AllUsers sample:', allUsers.slice(0, 2));
+            }
 
             const dueDate = task.dueDate ? new Date(task.dueDate) : null;
             const isOverdue = dueDate && dueDate < new Date() && !task.completed;
@@ -81,7 +84,11 @@ class TaskUtils {
             // task.assignedToがIDの場合、allUsersから該当ユーザーを検索
             else if (task.assignedTo && typeof task.assignedTo === 'string' && allUsers.length > 0) {
                 console.log('Case 2: task.assignedTo is string ID, searching in allUsers');
-                const assignedUser = allUsers.find(user => user._id === task.assignedTo || user.email === task.assignedTo);
+                const assignedUser = allUsers.find(user => 
+                    user._id === task.assignedTo || 
+                    user.id === task.assignedTo ||
+                    user.email === task.assignedTo
+                );
                 console.log('Found user:', assignedUser);
                 if (assignedUser) {
                     assigneeName = assignedUser.displayName || assignedUser.username || assignedUser.email || '不明';
@@ -95,7 +102,11 @@ class TaskUtils {
             // task.assignedTo._idの場合、allUsersから該当ユーザーを検索
             else if (task.assignedTo && task.assignedTo._id && allUsers.length > 0) {
                 console.log('Case 3: task.assignedTo has _id, searching in allUsers');
-                const assignedUser = allUsers.find(user => user._id === task.assignedTo._id || user.email === task.assignedTo.email);
+                const assignedUser = allUsers.find(user => 
+                    user._id === task.assignedTo._id || 
+                    user.id === task.assignedTo._id ||
+                    user.email === task.assignedTo.email
+                );
                 console.log('Found user:', assignedUser);
                 if (assignedUser) {
                     assigneeName = assignedUser.displayName || assignedUser.username || assignedUser.email || '不明';
@@ -107,7 +118,7 @@ class TaskUtils {
                 }
             }
             // assignedToNameが直接設定されている場合（後方互換性）
-            else if (task.assignedToName) {
+            else if (task.assignedToName && task.assignedToName !== '未割り当て') {
                 console.log('Case 4: using task.assignedToName');
                 assigneeName = task.assignedToName;
                 assigneeInitials = assigneeName
@@ -116,8 +127,31 @@ class TaskUtils {
                     .join('')
                     .toUpperCase();
             }
+            // currentUserが担当者の場合
+            else if (currentUser && task.assignedTo && 
+                     (task.assignedTo === currentUser._id || task.assignedTo === currentUser.id)) {
+                console.log('Case 5: currentUser is assigned');
+                assigneeName = currentUser.displayName || currentUser.username || currentUser.email || '自分';
+                assigneeInitials = assigneeName
+                    .split(' ')
+                    .map(name => name[0])
+                    .join('')
+                    .toUpperCase();
+            }
+            // デフォルトケース
+            else if (task.assignedTo && typeof task.assignedTo === 'string' && task.assignedTo !== 'unknown') {
+                console.log('Case 6: using assignedTo as display name (fallback)');
+                // IDらしき文字列でない場合は、そのまま表示名として使用
+                if (!task.assignedTo.match(/^[a-f\d]{24}$/i) && task.assignedTo.includes('@')) {
+                    assigneeName = task.assignedTo; // メールアドレスの場合
+                    assigneeInitials = task.assignedTo.charAt(0).toUpperCase();
+                } else if (!task.assignedTo.match(/^[a-f\d]{24}$/i)) {
+                    assigneeName = task.assignedTo; // その他の文字列
+                    assigneeInitials = task.assignedTo.charAt(0).toUpperCase();
+                }
+            }
             else {
-                console.log('Case 5: No assignee found, using default');
+                console.log('Case 7: No assignee found, using default');
             }
 
             console.log('Final assignee name:', assigneeName);

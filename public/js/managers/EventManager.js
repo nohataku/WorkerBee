@@ -274,10 +274,10 @@ class EventManager {
 
     async handleTaskLoad() {
         try {
-            // タスクとユーザー情報を並行して読み込み
+            // タスクとユーザー情報を並行して読み込み（現在ユーザーも含める）
             await Promise.all([
                 this.taskManager.loadTasks(),
-                this.taskManager.loadAllUsers()
+                this.taskManager.ensureUsersIncludeCurrentUser()
             ]);
             this.uiManager.renderTasks();
         } catch (error) {
@@ -290,7 +290,7 @@ class EventManager {
             const [/* stats, */ recentTasks] = await Promise.all([
                 // this.taskManager.loadStats(), // 一時的に無効化
                 this.taskManager.loadRecentTasks(),
-                this.taskManager.loadAllUsers() // ユーザー情報も同時に読み込み
+                this.taskManager.ensureUsersIncludeCurrentUser() // ユーザー情報も同時に読み込み
             ]);
             
             // this.uiManager.updateStatsDisplay(stats); // 一時的に無効化
@@ -419,7 +419,7 @@ class EventManager {
                     console.error('Failed to load dashboard during initialization:', error);
                     return null; // エラーを吸収して続行
                 }),
-                this.taskManager.loadAllUsers().catch(error => {
+                this.taskManager.ensureUsersIncludeCurrentUser().catch(error => {
                     console.error('Failed to load users during initialization:', error);
                     return null; // エラーを吸収して続行
                 })

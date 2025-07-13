@@ -7,10 +7,15 @@ class TaskManager {
         this.currentEditingTask = null;
         this.allUsers = [];
         this.uiManager = null; // UIManagerの参照を保持
+        this.authManager = null; // AuthManagerの参照を保持
     }
 
     setUIManager(uiManager) {
         this.uiManager = uiManager;
+    }
+
+    setAuthManager(authManager) {
+        this.authManager = authManager;
     }
 
     getTasks() {
@@ -320,6 +325,15 @@ class TaskManager {
     async loadAllUsers() {
         try {
             console.log('=== LOADING ALL USERS ===');
+            
+            // キャッシュされたユーザーがある場合は一旦それを返し、バックグラウンドで更新
+            if (this.allUsers.length > 0) {
+                console.log('Using cached users, updating in background...');
+                // バックグラウンドで更新
+                this.updateUsersInBackground();
+                return this.allUsers;
+            }
+            
             console.log('Loading all users for dropdown...');
             
             const response = await this.apiClient.call('/api/users');
@@ -329,30 +343,114 @@ class TaskManager {
                 // GAS環境では、レスポンスが直接配列で返される
                 this.allUsers = response;
                 console.log('All users loaded from API (Array):', this.allUsers.length, 'users');
-                console.log('User data:', this.allUsers);
+                
+                // ローカルストレージにキャッシュ
+                this.cacheUsers(this.allUsers);
                 return this.allUsers;
             } else if (response && response.success && response.data) {
                 // Node.js環境では、success/data形式で返される
                 this.allUsers = response.data.users || response.data || [];
                 console.log('All users loaded from API (Object):', this.allUsers.length, 'users');
-                console.log('User data:', this.allUsers);
+                
+                // ローカルストレージにキャッシュ
+                this.cacheUsers(this.allUsers);
                 return this.allUsers;
             } else {
-                console.log('No users data in response:', response);
+                console.log('No users data in response, trying cache...');
+                // APIからデータが取得できない場合、キャッシュから復元を試行
+                const cachedUsers = this.getCachedUsers();
+                if (cachedUsers && cachedUsers.length > 0) {
+                    console.log('Using cached users:', cachedUsers.length);
+                    this.allUsers = cachedUsers;
+                    return this.allUsers;
+                }
+                
                 this.allUsers = [];
                 return this.allUsers;
             }
         } catch (error) {
             console.error('Load all users error:', error);
+            
+            // エラー時もキャッシュから復元を試行
+            const cachedUsers = this.getCachedUsers();
+            if (cachedUsers && cachedUsers.length > 0) {
+                console.log('Using cached users due to API error:', cachedUsers.length);
+                this.allUsers = cachedUsers;
+                return this.allUsers;
+            }
+            
             this.allUsers = [];
             return this.allUsers;
         }
+    }
+
+    // バックグラウンドでユーザーリストを更新
+    async updateUsersInBackground() {
+        try {
+            const response = await this.apiClient.call('/api/users');
+            if (response && Array.isArray(response)) {
+                this.allUsers = response;
+                this.cacheUsers(this.allUsers);
+            } else if (response && response.success && response.data) {
+                this.allUsers = response.data.users || response.data || [];
+                this.cacheUsers(this.allUsers);
+            }
+        } catch (error) {
+            console.warn('Background user update failed:', error);
+        }
+    }
+
+    // ユーザーリストをローカルストレージにキャッシュ
+    cacheUsers(users) {
+        try {
+            const cacheData = {
+                users: users,
+                timestamp: Date.now()
+            };
+            localStorage.setItem('workerbee_users_cache', JSON.stringify(cacheData));
+        } catch (error) {
+            console.warn('Failed to cache users:', error);
+        }
+    }
+
+    // キャッシュからユーザーリストを取得
+    getCachedUsers() {
+        try {
+            const cached = localStorage.getItem('workerbee_users_cache');
+            if (cached) {
+                const cacheData = JSON.parse(cached);
+                // 24時間以内のキャッシュのみ使用
+                if (Date.now() - cacheData.timestamp < 24 * 60 * 60 * 1000) {
+                    return cacheData.users;
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to get cached users:', error);
+        }
+        return null;
     }
 
     getAllUsers() {
         console.log('TaskManager.getAllUsers called, returning:', this.allUsers.length, 'users');
         console.log('AllUsers data:', this.allUsers);
         return this.allUsers;
+    }
+
+    // ユーザーリストを取得（現在のユーザーを確実に含める）
+    async ensureUsersIncludeCurrentUser() {
+        let users = await this.loadAllUsers();
+        
+        // 現在のユーザーがリストに含まれていない場合は追加
+        if (this.authManager) {
+            const currentUser = this.authManager.getUser();
+            if (currentUser && !users.find(u => u._id === currentUser._id || u.id === currentUser.id)) {
+                console.log('Adding current user to users list');
+                users = [...users, currentUser];
+                this.allUsers = users;
+            }
+        }
+        
+        return users;
     }
 
     updateViews() {

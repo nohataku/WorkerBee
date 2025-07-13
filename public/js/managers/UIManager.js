@@ -119,10 +119,10 @@ class UIManager {
             const user = this.authManager.getUser();
             let allUsers = this.taskManager.getAllUsers();
             
-            // ユーザーリストが空の場合は読み込み
+            // ユーザーリストが空の場合は読み込み（現在ユーザーも含める）
             if (allUsers.length === 0) {
-                console.log('AllUsers is empty, loading users...');
-                allUsers = await this.taskManager.loadAllUsers();
+                console.log('AllUsers is empty, loading users with current user...');
+                allUsers = await this.taskManager.ensureUsersIncludeCurrentUser();
             }
             
             const container = document.getElementById('tasksList');
@@ -130,9 +130,10 @@ class UIManager {
             
             console.log('=== UIManager.renderTasks DEBUG ===');
             console.log('Tasks count:', tasks.length);
-            console.log('Current user:', user);
             console.log('AllUsers count:', allUsers.length);
-            console.log('AllUsers data:', allUsers);
+            if (allUsers.length === 0) {
+                console.log('WARNING: AllUsers is empty!');
+            }
             
             if (!container || !emptyState) {
                 console.error('Task container elements not found');
@@ -173,10 +174,10 @@ class UIManager {
         const user = this.authManager.getUser();
         let allUsers = this.taskManager.getAllUsers();
         
-        // ユーザーリストが空の場合は読み込み
+        // ユーザーリストが空の場合は読み込み（現在ユーザーも含める）
         if (allUsers.length === 0) {
-            console.log('AllUsers is empty in renderRecentTasks, loading users...');
-            allUsers = await this.taskManager.loadAllUsers();
+            console.log('AllUsers is empty in renderRecentTasks, loading users with current user...');
+            allUsers = await this.taskManager.ensureUsersIncludeCurrentUser();
         }
         
         const container = document.getElementById('recentTasks');
@@ -184,7 +185,9 @@ class UIManager {
         console.log('=== UIManager.renderRecentTasks DEBUG ===');
         console.log('Recent tasks count:', tasks.length);
         console.log('AllUsers count:', allUsers.length);
-        console.log('AllUsers data:', allUsers);
+        if (allUsers.length === 0) {
+            console.log('WARNING: AllUsers is empty in renderRecentTasks!');
+        }
         
         if (!container) {
             console.error('Recent tasks container not found');

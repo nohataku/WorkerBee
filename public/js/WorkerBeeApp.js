@@ -35,8 +35,9 @@ class WorkerBeeApp {
             this.notificationManager
         );
         
-        // TaskManagerにUIManagerの参照を設定
+        // TaskManagerにUIManagerとAuthManagerの参照を設定
         this.taskManager.setUIManager(this.uiManager);
+        this.taskManager.setAuthManager(this.authManager);
         
         // イベントマネージャーの初期化
         this.eventManager = new EventManager(
