@@ -2,20 +2,49 @@
 
 複数人でリアルタイムに協力してタスク管理ができる、パソコンに詳しくない方でも簡単に使えるWebアプリケーションです。
 
-## 🌐 GitHub Pages対応
+## 🌐 マルチ環境対応
 
-このアプリケーションは**GitHub Pages**での公開に対応しています。
-環境変数を使用せず、すべての設定が公開可能な形で管理されています。
+このアプリケーションは**Node.jsサーバー**と**GitHub Pages**の両方で動作します：
 
-### 📋 デプロイ方式
+### 🔧 デプロイ方式
+
+#### 開発環境（ローカル）
+- **フロントエンド**: Node.js Express静的配信
+- **バックエンド**: Node.js Express + Socket.IO
+- **データベース**: Google Spreadsheet（GAS経由）
+- **リアルタイム通信**: Socket.IO ✅
+
+#### 本番環境（GitHub Pages）
 - **フロントエンド**: GitHub Pages（静的ホスティング）
 - **バックエンド**: Google Apps Script（サーバーレス）
 - **データベース**: Google Spreadsheet
+- **リアルタイム通信**: 無効（静的環境のため）
 
-### ⚙️ 設定管理
-- 環境変数（.env）は使用しません
-- すべての設定は `public/js/config.js` で管理
-- 環境（開発/本番）の自動判定機能付き
+### ⚙️ 自動環境判定
+
+アプリケーションは実行環境を自動判定し、適切なAPI接続方法を選択します：
+
+- **localhost/127.0.0.1**: 開発環境 → Node.jsサーバー使用
+- **github.io**: 本番環境 → Google Apps Script使用
+
+### 🚀 起動方法
+
+#### ローカル開発
+```bash
+npm install
+npm start
+# http://localhost:3000 でアクセス
+```
+
+#### GitHub Pages
+1. リポジトリをGitHubにプッシュ
+2. Settings → Pages → GitHub Actions
+3. 自動デプロイ後、`https://username.github.io/WorkerBee/` でアクセス
+
+### 🧪 環境テスト
+
+- **ローカル**: `http://localhost:3000/test.html`
+- **GitHub Pages**: `https://username.github.io/WorkerBee/test.html`
 
 ## 🌟 主な特徴
 

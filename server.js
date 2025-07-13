@@ -9,6 +9,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const taskRoutes = require('./routes/tasks');
 const userRoutes = require('./routes/users');
+const gasProxyRoutes = require('./routes/gas-proxy');
 
 const app = express();
 const server = createServer(app);
@@ -21,8 +22,38 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000;
 
-// セキュリティミドルウェア
-app.use(helmet());
+// セキュリティミドルウェア（CSP設定を緩和）
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: [
+                "'self'",
+                "'unsafe-inline'",
+                "https://cdn.socket.io",
+                "https://cdnjs.cloudflare.com",
+                "https://fonts.googleapis.com"
+            ],
+            styleSrc: [
+                "'self'",
+                "'unsafe-inline'",
+                "https://fonts.googleapis.com",
+                "https://cdnjs.cloudflare.com"
+            ],
+            fontSrc: [
+                "'self'",
+                "https://fonts.gstatic.com",
+                "https://cdnjs.cloudflare.com"
+            ],
+            connectSrc: [
+                "'self'",
+                "ws://localhost:3000",
+                "wss://localhost:3000",
+                "https://script.google.com"
+            ]
+        }
+    }
+}));
 app.use(cors());
 
 // レート制限
@@ -70,6 +101,7 @@ app.set('socketio', io);
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api', gasProxyRoutes);
 
 // ルートページ
 app.get('/', (req, res) => {

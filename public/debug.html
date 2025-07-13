@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkerBee - デバッグ・セットアップ</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .debug-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .debug-button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .debug-button:hover {
+            background: #1976D2;
+        }
+        .create-button {
+            background: #4CAF50;
+        }
+        .create-button:hover {
+            background: #45a049;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        input {
+            width: 200px;
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🛠️ WorkerBee デバッグ・セットアップ</h1>
+    
+    <div class="debug-container">
+        <h2>環境情報</h2>
+        <div id="env-info">読み込み中...</div>
+    </div>
+    
+    <div class="debug-container">
+        <h2>GAS接続テスト</h2>
+        <button class="debug-button" onclick="testGasConnection()">GAS接続テスト</button>
+        <div id="gas-test-result"></div>
+    </div>
+    
+    <div class="debug-container">
+        <h2>テストユーザー作成</h2>
+        <div>
+            <input type="email" id="test-email" placeholder="email@example.com" value="test@example.com">
+            <input type="text" id="test-username" placeholder="ユーザー名" value="testuser">
+            <input type="text" id="test-displayname" placeholder="表示名" value="テストユーザー">
+            <input type="password" id="test-password" placeholder="パスワード" value="test123">
+        </div>
+        <button class="debug-button create-button" onclick="createTestUser()">テストユーザー作成</button>
+        <div id="create-user-result"></div>
+    </div>
+    
+    <div class="debug-container">
+        <h2>ログインテスト</h2>
+        <div>
+            <input type="email" id="login-email" placeholder="email@example.com" value="test@example.com">
+            <input type="password" id="login-password" placeholder="パスワード" value="test123">
+        </div>
+        <button class="debug-button" onclick="testLogin()">ログインテスト</button>
+        <div id="login-test-result"></div>
+    </div>
+    
+    <div class="debug-container">
+        <h2>ユーザー一覧取得</h2>
+        <button class="debug-button" onclick="getAllUsers()">ユーザー一覧取得</button>
+        <div id="users-result"></div>
+    </div>
+    
+    <!-- 設定ファイルを読み込み -->
+    <script src="js/config.js"></script>
+    <script src="js/api/ApiClient.js"></script>
+    <script src="js/utils/PasswordUtils.js"></script>
+    
+    <script>
+        const apiClient = new ApiClient();
+        const passwordUtils = new PasswordUtils();
+        
+        // 環境情報を表示
+        document.getElementById('env-info').innerHTML = `
+            <div class="result info">
+現在の環境: ${WorkerBeeConfig.current}
+ホスト名: ${window.location.hostname}
+API Base URL: ${WorkerBeeConfig.apiBaseUrl || 'なし'}
+GAS URL: ${WorkerBeeConfig.gas.webAppUrl}
+            </div>
+        `;
+        
+        // GAS接続テスト
+        async function testGasConnection() {
+            const resultDiv = document.getElementById('gas-test-result');
+            resultDiv.innerHTML = '<div class="result info">接続テスト中...</div>';
+            
+            try {
+                let url, requestData;
+                
+                if (WorkerBeeConfig.current === 'development') {
+                    // 開発環境: プロキシ経由でGASにアクセス
+                    url = '/api/gas-proxy';
+                    requestData = {
+                        action: 'getUsers',
+                        payload: {}
+                    };
+                } else {
+                    // 本番環境: 直接GASにアクセス
+                    url = WorkerBeeConfig.gas.webAppUrl;
+                    requestData = {
+                        action: 'getUsers',
+                        payload: {}
+                    };
+                }
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestData)
+                });
+                
+                const result = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="result ${result.success ? 'success' : 'error'}">
+環境: ${WorkerBeeConfig.current}
+URL: ${url}
+GAS接続: ${result.success ? '成功' : '失敗'}
+レスポンス: ${JSON.stringify(result, null, 2)}
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+GAS接続エラー: ${error.message}
+環境: ${WorkerBeeConfig.current}
+                    </div>
+                `;
+            }
+        }
+        
+        // テストユーザー作成
+        async function createTestUser() {
+            const resultDiv = document.getElementById('create-user-result');
+            resultDiv.innerHTML = '<div class="result info">ユーザー作成中...</div>';
+            
+            try {
+                const email = document.getElementById('test-email').value;
+                const username = document.getElementById('test-username').value;
+                const displayName = document.getElementById('test-displayname').value;
+                const password = document.getElementById('test-password').value;
+                
+                // パスワードをハッシュ化
+                const hashedPassword = await passwordUtils.hashPassword(password);
+                
+                const result = await apiClient.call('/api/auth/register', 'POST', {
+                    email,
+                    username,
+                    displayName,
+                    password: hashedPassword
+                });
+                
+                resultDiv.innerHTML = `
+                    <div class="result success">
+ユーザー作成成功！
+結果: ${JSON.stringify(result, null, 2)}
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+ユーザー作成エラー: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // ログインテスト
+        async function testLogin() {
+            const resultDiv = document.getElementById('login-test-result');
+            resultDiv.innerHTML = '<div class="result info">ログインテスト中...</div>';
+            
+            try {
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                
+                // パスワードをハッシュ化
+                const hashedPassword = await passwordUtils.hashPassword(password);
+                
+                const result = await apiClient.call('/api/auth/login', 'POST', {
+                    email,
+                    password: hashedPassword
+                });
+                
+                resultDiv.innerHTML = `
+                    <div class="result success">
+ログイン成功！
+結果: ${JSON.stringify(result, null, 2)}
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+ログインエラー: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // ユーザー一覧取得
+        async function getAllUsers() {
+            const resultDiv = document.getElementById('users-result');
+            resultDiv.innerHTML = '<div class="result info">ユーザー一覧取得中...</div>';
+            
+            try {
+                const result = await apiClient.call('/api/users', 'GET');
+                
+                resultDiv.innerHTML = `
+                    <div class="result success">
+ユーザー一覧取得成功！
+結果: ${JSON.stringify(result, null, 2)}
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+ユーザー一覧取得エラー: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // ページ読み込み時に自動でGAS接続テスト
+        window.onload = function() {
+            setTimeout(testGasConnection, 1000);
+        };
+    </script>
+</body>
+</html>
