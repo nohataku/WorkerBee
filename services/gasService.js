@@ -208,6 +208,48 @@ class GasService {
             throw new Error(error.response?.data?.message || 'タスク削除エラーが発生しました');
         }
     }
+
+    // ユーザー統計を取得
+    async getUserStats() {
+        try {
+            console.log('Getting user stats from GAS...');
+            
+            const response = await axios.post(this.gasUrl, {
+                action: 'getUserStats',
+                payload: {}
+            }, {
+                timeout: 10000,
+                headers: {
+                    'User-Agent': 'WorkerBee/1.0'
+                }
+            });
+            
+            console.log('GAS getUserStats response status:', response.status);
+            console.log('GAS getUserStats response data:', response.data);
+            
+            if (response.data && response.data.success) {
+                console.log('User stats loaded successfully from GAS');
+                return response.data.data;
+            } else {
+                console.error('GAS returned unsuccessful response for getUserStats:', response.data);
+                throw new Error(response.data?.message || 'ユーザー統計の取得に失敗しました');
+            }
+        } catch (error) {
+            console.error('GAS Get User Stats Error:', error);
+            
+            if (error.code === 'ECONNABORTED') {
+                throw new Error('GAS サービスへの接続がタイムアウトしました');
+            } else if (error.response) {
+                console.error('GAS Error Response:', error.response.status, error.response.data);
+                throw new Error(`GAS サービスエラー: ${error.response.status} - ${error.response.data?.message || error.message}`);
+            } else if (error.request) {
+                console.error('GAS No Response:', error.request);
+                throw new Error('GAS サービスからの応答がありません。ネットワーク接続を確認してください。');
+            } else {
+                throw new Error(`GAS 通信エラー: ${error.message}`);
+            }
+        }
+    }
 }
 
 module.exports = new GasService();

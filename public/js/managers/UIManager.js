@@ -205,12 +205,36 @@ class UIManager {
     }
 
     updateStatsDisplay(stats) {
-        if (!stats) return;
+        console.log('UIManager.updateStatsDisplay: Received stats:', stats);
         
-        document.getElementById('totalTasks').textContent = stats.total || 0;
-        document.getElementById('completedTasks').textContent = stats.completed || 0;
-        document.getElementById('pendingTasks').textContent = stats.pending || 0;
-        document.getElementById('overdueTasks').textContent = stats.overdue || 0;
+        if (!stats) {
+            console.warn('UIManager.updateStatsDisplay: Stats is null or undefined');
+            return;
+        }
+        
+        const totalElement = document.getElementById('totalTasks');
+        const completedElement = document.getElementById('completedTasks');
+        const pendingElement = document.getElementById('pendingTasks');
+        const overdueElement = document.getElementById('overdueTasks');
+        
+        console.log('UIManager.updateStatsDisplay: DOM elements found:', {
+            total: !!totalElement,
+            completed: !!completedElement,
+            pending: !!pendingElement,
+            overdue: !!overdueElement
+        });
+        
+        if (totalElement) totalElement.textContent = stats.total || 0;
+        if (completedElement) completedElement.textContent = stats.completed || 0;
+        if (pendingElement) pendingElement.textContent = stats.pending || 0;
+        if (overdueElement) overdueElement.textContent = stats.overdue || 0;
+        
+        console.log('UIManager.updateStatsDisplay: Updated values:', {
+            total: stats.total || 0,
+            completed: stats.completed || 0,
+            pending: stats.pending || 0,
+            overdue: stats.overdue || 0
+        });
     }
 
     async showTaskModal() {

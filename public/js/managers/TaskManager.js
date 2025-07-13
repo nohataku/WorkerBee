@@ -305,21 +305,23 @@ class TaskManager {
     }
 
     async loadStats() {
-        try {
-            const response = await this.apiClient.call('/api/tasks/stats/user');
-            
-            if (response && response.stats) {
-                // レスポンスに直接statsプロパティがある場合
-                return response.stats;
-            } else if (response && response.success && response.data) {
-                // Node.js環境ではsuccess/data形式
-                return response.data.stats;
-            }
-            return null;
-        } catch (error) {
-            console.error('Load stats error:', error);
-            return null;
+        // Client-side stats calculation using loaded tasks
+        if (!Array.isArray(this.tasks)) {
+            // Ensure tasks are loaded
+            await this.loadTasks();
         }
+        const now = new Date();
+        const total = this.tasks.length;
+        const completed = this.tasks.filter(task => task.completed).length;
+        const pending = this.tasks.filter(task => !task.completed && task.status !== 'completed').length;
+        const overdue = this.tasks.filter(task => {
+            if (task.completed) return false;
+            if (!task.dueDate) return false;
+            return new Date(task.dueDate) < now;
+        }).length;
+        const stats = { total, completed, pending, overdue };
+        console.log('TaskManager.loadStats: Calculated client stats:', stats);
+        return stats;
     }
 
     async loadAllUsers() {

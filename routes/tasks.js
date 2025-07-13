@@ -269,6 +269,38 @@ router.post('/', [
     }
 });
 
+// タスク統計取得
+router.get('/stats/user', async (req, res) => {
+    try {
+        console.log('=== TASK STATS API ===');
+        console.log('Getting task statistics...');
+
+        // GASから統計データを取得
+        const statsData = await gasService.getUserStats();
+        
+        console.log('Stats data from GAS:', statsData);
+        console.log('Stats object:', statsData?.stats);
+
+        const responseData = {
+            success: true,
+            data: {
+                stats: statsData.stats
+            }
+        };
+
+        console.log('Sending response:', responseData);
+
+        res.json(responseData);
+
+    } catch (error) {
+        console.error('Get Task Statistics Error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'タスク統計の取得中にエラーが発生しました'
+        });
+    }
+});
+
 // タスク更新
 router.put('/:id', [
     body('title')
@@ -496,7 +528,7 @@ router.get('/:id', async (req, res) => {
                 if (createdUser) {
                     createdByInfo = {
                         _id: createdUser._id || createdUser.id,
-                        displayName: createdUser.displayName || createdUser.username || createdUser.email,
+                        displayName: createdUser.displayName || createdUser.username || createdByInfo.email,
                         email: createdUser.email || ''
                     };
                 } else {

@@ -287,14 +287,23 @@ class EventManager {
 
     async handleDashboardLoad() {
         try {
-            const [/* stats, */ recentTasks] = await Promise.all([
-                // this.taskManager.loadStats(), // 一時的に無効化
+            console.log('EventManager.handleDashboardLoad: Starting dashboard load...');
+            
+            const [stats, recentTasks] = await Promise.all([
+                this.taskManager.loadStats(),
                 this.taskManager.loadRecentTasks(),
                 this.taskManager.ensureUsersIncludeCurrentUser() // ユーザー情報も同時に読み込み
             ]);
             
-            // this.uiManager.updateStatsDisplay(stats); // 一時的に無効化
+            console.log('EventManager.handleDashboardLoad: Loaded data:', {
+                stats: stats,
+                recentTasksCount: recentTasks?.length || 0
+            });
+            
+            this.uiManager.updateStatsDisplay(stats);
             this.uiManager.renderRecentTasks(recentTasks);
+            
+            console.log('EventManager.handleDashboardLoad: Dashboard load completed');
         } catch (error) {
             console.error('Error loading dashboard:', error);
         }
