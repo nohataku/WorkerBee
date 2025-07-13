@@ -7,12 +7,16 @@
     <meta name="description" content="複数人でリアルタイムに協力してタスク管理ができるWebアプリケーション">
     <meta name="keywords" content="タスク管理,ワーカービー,GitHub Pages,Google Apps Script">
     
-    <!-- GitHub Pages用のベースURL設定（ローカル開発時は動的に設定） -->
+    <!-- 環境別のベースURL設定 -->
     <script>
         // ローカル開発環境の場合はベースURLを設定しない
-        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        if (window.location.hostname !== 'localhost' && 
+            window.location.hostname !== '127.0.0.1' &&
+            window.location.hostname.includes('github.io')) {
+            // GitHub Pages の場合のみベースURLを設定
             document.write('<base href="/WorkerBee/">');
         }
+        // Netlify などその他の環境では何もしない（ルートパスを使用）
     </script>
     
     <link rel="stylesheet" href="css/styles.css">

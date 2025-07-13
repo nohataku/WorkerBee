@@ -1,5 +1,11 @@
-# SPA (Single Page Application) 対応
-/*    /index.html   200
+# 静的ファイルを優先（CSS、JS、画像など）
+/css/*    /css/:splat    200
+/js/*     /js/:splat     200
+/images/* /images/:splat 200
+/*.ico    /:splat        200
 
 # API エンドポイントのプロキシ設定（必要に応じて）
 /api/*  https://script.google.com/macros/s/YOUR_GAS_ID/exec  200
+
+# SPA (Single Page Application) 対応 - 最後に配置
+/*    /index.html   200
