@@ -55,9 +55,9 @@ const config = {
 
     // API設定
     api: {
-        timeout: 30000, // 30秒
-        retryAttempts: 3,
-        retryDelay: 1000 // 1秒
+        timeout: 800, // 800ms - 高速化のため大幅短縮
+        retryAttempts: 2, // リトライ回数を削減
+        retryDelay: 100 // リトライ間隔を短縮
     }
 };
 
