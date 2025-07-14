@@ -23,7 +23,7 @@ class GasService {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                timeout: 800 // 800msに短縮
+                timeout: 30000
             });
             
             console.log('📥 GAS Response status:', response.status);
@@ -98,7 +98,7 @@ class GasService {
         try {
             console.log('Requesting tasks from GAS...');
             const response = await axios.get(`${this.gasUrl}?action=getTasks`, {
-                timeout: 800, // 800msに短縮
+                timeout: 10000, // 10秒のタイムアウト
                 headers: {
                     'User-Agent': 'WorkerBee/1.0'
                 }
@@ -158,7 +158,7 @@ class GasService {
                 action: 'updateTask',
                 payload: { id: taskId, ...updates }
             }, {
-                timeout: 800, // 800msに短縮
+                timeout: 10000, // 10秒のタイムアウト
                 headers: {
                     'User-Agent': 'WorkerBee/1.0'
                 }
@@ -218,7 +218,7 @@ class GasService {
                 action: 'getUserStats',
                 payload: {}
             }, {
-                timeout: 800, // 800msに短縮
+                timeout: 10000,
                 headers: {
                     'User-Agent': 'WorkerBee/1.0'
                 }

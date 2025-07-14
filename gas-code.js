@@ -1,83 +1,19 @@
-const SPREADSHEET_ID = '1dG4vyqKarYzfGoJPwlwUquduPzQ9ODyGgFwlXlsrUb4';
-
-// キャッシュ設定
-const CACHE_DURATION = 30 * 1000; // 30秒
-const cache = new Map();
-
-// スプレッドシートの接続を最適化
-let ss = null;
-let tasksSheet = null;
-let usersSheet = null;
-
-function getSpreadsheet() {
-  if (!ss) {
-    ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  }
-  return ss;
-}
-
-function getTasksSheet() {
-  if (!tasksSheet) {
-    tasksSheet = getSpreadsheet().getSheetByName('Tasks');
-  }
-  return tasksSheet;
-}
-
-function getUsersSheet() {
-  if (!usersSheet) {
-    usersSheet = getSpreadsheet().getSheetByName('Users');
-  }
-  return usersSheet;
-}
+const SPREADSHEET_ID = '1dG4vyqKarYzfGoJPwlwUquduPzQ9ODyGgFwlXlsrUb4'; // 設定ファイルから取得したスプレッドシートID
+const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+const tasksSheet = ss.getSheetByName('Tasks');
+const usersSheet = ss.getSheetByName('Users');
 
 // --- Utils ---
 function generateId() {
   return Utilities.getUuid();
 }
 
-// キャッシュ機能
-function getCachedData(key) {
-  const cached = cache.get(key);
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    return cached.data;
-  }
-  return null;
-}
-
-function setCachedData(key, data) {
-  cache.set(key, {
-    data: data,
-    timestamp: Date.now()
-  });
-}
-
-function invalidateCache(pattern = null) {
-  if (pattern) {
-    for (const [key] of cache) {
-      if (key.includes(pattern)) {
-        cache.delete(key);
-      }
-    }
-  } else {
-    cache.clear();
-  }
-}
-
 function getSheetHeaders(sheet) {
   if (!sheet) return [];
-  
-  const cacheKey = `headers_${sheet.getName()}`;
-  let headers = getCachedData(cacheKey);
-  
-  if (!headers) {
-    const lastColumn = sheet.getLastColumn();
-    if (lastColumn === 0) return [];
-    const range = sheet.getRange(1, 1, 1, lastColumn);
-    headers = range.getValues()[0];
-    setCachedData(cacheKey, headers);
-  }
-  
-  return headers;
+  const lastColumn = sheet.getLastColumn();
+  if (lastColumn === 0) return [];
+  const range = sheet.getRange(1, 1, 1, lastColumn);
+  return range.getValues()[0];
 }
 
 function findRowById(sheet, id) {
@@ -116,34 +52,21 @@ function findRowByEmail(sheet, email) {
 
 function sheetToObjects(sheet) {
   if (!sheet) return [];
-  
-  const cacheKey = `sheet_data_${sheet.getName()}`;
-  let cachedData = getCachedData(cacheKey);
-  
-  if (cachedData) {
-    return cachedData;
-  }
-  
   const lastRow = sheet.getLastRow();
-  if (lastRow <= 1) return [];
+  if (lastRow <= 1) return []; // ヘッダー行のみまたは空の場合
   
   const headers = getSheetHeaders(sheet);
   if (headers.length === 0) return [];
   
   const lastColumn = sheet.getLastColumn();
-  
-  // バッチでデータを取得して処理速度を向上
   const data = sheet.getRange(2, 1, lastRow - 1, lastColumn).getValues();
-  const result = data.map(row => {
+  return data.map(row => {
     const obj = {};
     headers.forEach((header, i) => {
       obj[header] = row[i] || "";
     });
     return obj;
   });
-  
-  setCachedData(cacheKey, result);
-  return result;
 }
 
 function objectToSheetRow(sheet, obj) {
@@ -154,31 +77,25 @@ function objectToSheetRow(sheet, obj) {
 // シートの初期化（ヘッダーが存在しない場合に追加）
 function initializeSheets() {
   // Usersシートの初期化
-  const users = getUsersSheet();
-  if (users && users.getLastRow() === 0) {
-    users.getRange(1, 1, 1, 6).setValues([['id', 'username', 'email', 'displayName', 'password', 'createdAt']]);
+  if (usersSheet && usersSheet.getLastRow() === 0) {
+    usersSheet.getRange(1, 1, 1, 6).setValues([['id', 'username', 'email', 'displayName', 'password', 'createdAt']]);
   }
   
   // Tasksシートの初期化
-  const tasks = getTasksSheet();
-  if (tasks && tasks.getLastRow() === 0) {
-    tasks.getRange(1, 1, 1, 9).setValues([['id', 'title', 'description', 'priority', 'dueDate', 'assignedTo', 'status', 'createdAt', 'updatedAt']]);
+  if (tasksSheet && tasksSheet.getLastRow() === 0) {
+    tasksSheet.getRange(1, 1, 1, 9).setValues([['id', 'title', 'description', 'priority', 'dueDate', 'assignedTo', 'status', 'createdAt', 'updatedAt']]);
   }
 }
 
+// --- Web App Entry Points ---
 function doGet(e) {
   const params = e.parameter;
   const action = params.action;
-  
-  // CORSヘッダーとキャッシュヘッダーを設定
-  const response = ContentService.createTextOutput();
-  response.setMimeType(ContentService.MimeType.JSON);
-  
+  let result;
+
   try {
-    // 軽量な初期化処理
-    if (!ss) initializeSheets();
+    initializeSheets(); // シートを初期化
     
-    let result;
     switch (action) {
       case 'getTasks':
         result = handleGetTasks();
@@ -192,10 +109,11 @@ function doGet(e) {
       default:
         throw new Error('Invalid action');
     }
-    
-    return response.setContent(JSON.stringify({ success: true, data: result }));
+    return ContentService.createTextOutput(JSON.stringify({ success: true, data: result }))
+      .setMimeType(ContentService.MimeType.JSON);
   } catch (error) {
-    return response.setContent(JSON.stringify({ success: false, message: error.message }));
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: error.message }))
+      .setMimeType(ContentService.MimeType.JSON);
   }
 }
 
@@ -210,16 +128,11 @@ function doOptions(e) {
 function doPost(e) {
   const requestBody = JSON.parse(e.postData.contents);
   const action = requestBody.action;
-  
-  // 高速レスポンス設定
-  const response = ContentService.createTextOutput();
-  response.setMimeType(ContentService.MimeType.JSON);
+  let result;
 
   try {
-    // 軽量な初期化処理
-    if (!ss) initializeSheets();
+    initializeSheets(); // シートを初期化
     
-    let result;
     switch (action) {
       case 'login':
         result = handleLogin(requestBody.payload);
@@ -235,15 +148,12 @@ function doPost(e) {
         break;
       case 'createTask':
         result = handleCreateTask(requestBody.payload);
-        invalidateCache('Tasks'); // タスク関連キャッシュを無効化
         break;
       case 'updateTask':
         result = handleUpdateTask(requestBody.payload);
-        invalidateCache('Tasks'); // タスク関連キャッシュを無効化
         break;
       case 'deleteTask':
         result = handleDeleteTask(requestBody.payload);
-        invalidateCache('Tasks'); // タスク関連キャッシュを無効化
         break;
       case 'getUsers':
         result = handleGetUsers(requestBody.payload);
@@ -251,10 +161,11 @@ function doPost(e) {
       default:
         throw new Error('Invalid action');
     }
-    
-    return response.setContent(JSON.stringify({ success: true, data: result }));
+     return ContentService.createTextOutput(JSON.stringify({ success: true, data: result }))
+      .setMimeType(ContentService.MimeType.JSON);
   } catch (error) {
-    return response.setContent(JSON.stringify({ success: false, message: error.message }));
+     return ContentService.createTextOutput(JSON.stringify({ success: false, message: error.message }))
+      .setMimeType(ContentService.MimeType.JSON);
   }
 }
 
@@ -266,13 +177,13 @@ function handleLogin({ email, password }) {
     throw new Error('メールアドレスとパスワードは必須です。');
   }
   
-  const userRow = findRowByEmail(getUsersSheet(), email);
+  const userRow = findRowByEmail(usersSheet, email);
   if (userRow === -1) {
     throw new Error('メールアドレスまたはパスワードが正しくありません。');
   }
 
-  const headers = getSheetHeaders(getUsersSheet());
-  const userData = getUsersSheet().getRange(userRow, 1, 1, getUsersSheet().getLastColumn()).getValues()[0];
+  const headers = getSheetHeaders(usersSheet);
+  const userData = usersSheet.getRange(userRow, 1, 1, usersSheet.getLastColumn()).getValues()[0];
   const user = {};
   headers.forEach((h, i) => user[h] = userData[i]);
 
@@ -292,7 +203,7 @@ function handleRegister(payload) {
     throw new Error('すべての必須フィールドを入力してください。');
   }
 
-  if (findRowByEmail(getUsersSheet(), email) !== -1) {
+  if (findRowByEmail(usersSheet, email) !== -1) {
     throw new Error('このメールアドレスは既に登録されています。');
   }
 
@@ -304,11 +215,7 @@ function handleRegister(payload) {
     password, // ハッシュ化されたパスワードとして保存
     createdAt: new Date().toISOString(),
   };
-  
-  getUsersSheet().appendRow(objectToSheetRow(getUsersSheet(), newUser));
-  
-  // キャッシュを無効化
-  invalidateCache('Users');
+  usersSheet.appendRow(objectToSheetRow(usersSheet, newUser));
   
   // レスポンスからパスワードを除外
   delete newUser.password;
@@ -316,41 +223,26 @@ function handleRegister(payload) {
 }
 
 function handleGetUsers() {
-  const cacheKey = 'users_all';
-  let users = getCachedData(cacheKey);
-  
-  if (!users) {
-    users = sheetToObjects(getUsersSheet());
-    // Remove password from all users before sending
-    users = users.map(u => {
-      delete u.password;
-      return u;
-    });
-    setCachedData(cacheKey, users);
-  }
-  
-  return users;
+  const users = sheetToObjects(usersSheet);
+  // Remove password from all users before sending
+  return users.map(u => {
+    delete u.password;
+    return u;
+  });
 }
 
 function handleGetUserStats(payload) {
   try {
-    const cacheKey = 'user_stats';
-    let stats = getCachedData(cacheKey);
+    const tasks = sheetToObjects(tasksSheet);
     
-    if (!stats) {
-      const tasks = sheetToObjects(getTasksSheet());
-      
-      // 各ステータスのタスク数を計算
-      stats = {
-        total: tasks.length,
-        pending: tasks.filter(task => task.status === 'pending').length,
-        'in-progress': tasks.filter(task => task.status === 'in-progress').length,
-        completed: tasks.filter(task => task.status === 'completed').length,
-        cancelled: tasks.filter(task => task.status === 'cancelled').length
-      };
-      
-      setCachedData(cacheKey, stats);
-    }
+    // 各ステータスのタスク数を計算
+    const stats = {
+      total: tasks.length,
+      pending: tasks.filter(task => task.status === 'pending').length,
+      'in-progress': tasks.filter(task => task.status === 'in-progress').length,
+      completed: tasks.filter(task => task.status === 'completed').length,
+      cancelled: tasks.filter(task => task.status === 'cancelled').length
+    };
     
     return { stats: stats };
   } catch (error) {
@@ -361,47 +253,40 @@ function handleGetUserStats(payload) {
 
 function handleGetUsersWithPasswords() {
   // 認証目的でのみ使用 - ハッシュ化されたパスワードを含む
-  return sheetToObjects(getUsersSheet());
+  return sheetToObjects(usersSheet);
 }
 
 // Task Handlers
 function handleGetTasks(payload = {}) {
   try {
-    const cacheKey = `tasks_${JSON.stringify(payload)}`;
-    let tasks = getCachedData(cacheKey);
+    let tasks = sheetToObjects(tasksSheet);
     
-    if (!tasks) {
-      tasks = sheetToObjects(getTasksSheet());
-      
-      // フィルタリング処理
-      if (payload.status && payload.status !== 'all') {
-        tasks = tasks.filter(task => task.status === payload.status);
-      }
-      
-      if (payload.priority) {
-        tasks = tasks.filter(task => task.priority === payload.priority);
-      }
-      
-      // ソート処理
-      if (payload.sortBy) {
-        const sortOrder = payload.sortOrder === 'desc' ? -1 : 1;
-        tasks.sort((a, b) => {
-          const aVal = a[payload.sortBy];
-          const bVal = b[payload.sortBy];
-          
-          if (payload.sortBy === 'createdAt' || payload.sortBy === 'updatedAt' || payload.sortBy === 'dueDate') {
-            // 日付の比較
-            const aDate = new Date(aVal || 0);
-            const bDate = new Date(bVal || 0);
-            return sortOrder * (aDate - bDate);
-          } else {
-            // 文字列の比較
-            return sortOrder * (aVal || '').localeCompare(bVal || '');
-          }
-        });
-      }
-      
-      setCachedData(cacheKey, tasks);
+    // フィルタリング処理
+    if (payload.status && payload.status !== 'all') {
+      tasks = tasks.filter(task => task.status === payload.status);
+    }
+    
+    if (payload.priority) {
+      tasks = tasks.filter(task => task.priority === payload.priority);
+    }
+    
+    // ソート処理
+    if (payload.sortBy) {
+      const sortOrder = payload.sortOrder === 'desc' ? -1 : 1;
+      tasks.sort((a, b) => {
+        const aVal = a[payload.sortBy];
+        const bVal = b[payload.sortBy];
+        
+        if (payload.sortBy === 'createdAt' || payload.sortBy === 'updatedAt' || payload.sortBy === 'dueDate') {
+          // 日付の比較
+          const aDate = new Date(aVal || 0);
+          const bDate = new Date(bVal || 0);
+          return sortOrder * (aDate - bDate);
+        } else {
+          // 文字列の比較
+          return sortOrder * (aVal || '').localeCompare(bVal || '');
+        }
+      });
     }
     
     // リミット処理
