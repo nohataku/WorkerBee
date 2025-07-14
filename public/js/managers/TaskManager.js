@@ -232,8 +232,9 @@ class TaskManager {
             let action;
             
             if (this.currentEditingTask) {
-                console.log('Updating task:', this.currentEditingTask._id, taskData);
-                response = await this.apiClient.call(`/api/tasks/${this.currentEditingTask._id}`, 'PUT', taskData);
+                const taskId = this.currentEditingTask._id || this.currentEditingTask.id;
+                console.log('Updating task:', taskId, taskData);
+                response = await this.apiClient.call(`/api/tasks/${taskId}`, 'PUT', taskData);
                 action = '更新';
             } else {
                 console.log('Creating new task:', taskData);

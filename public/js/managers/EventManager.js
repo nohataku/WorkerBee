@@ -203,7 +203,7 @@ class EventManager {
             if (taskItem) {
                 const taskId = taskItem.id.replace('task-', '');
                 console.log('Edit button clicked via delegation for task:', taskId);
-                const task = this.taskManager.getTasks().find(t => t._id === taskId);
+                const task = this.taskManager.getTasks().find(t => (t._id === taskId || t.id === taskId));
                 if (task) {
                     this.handleTaskEdit(task);
                 } else {
