@@ -54,7 +54,7 @@ class TaskUtils {
             }
 
             const dueDate = task.dueDate ? new Date(task.dueDate) : null;
-            const isOverdue = dueDate && dueDate < new Date() && !task.completed;
+            const isOverdue = dueDate && dueDate < new Date() && task.status !== 'completed';
             const dueDateStr = dueDate ? TaskUtils.formatDate(dueDate) : '';
             
             // assignedToの安全な処理
@@ -161,9 +161,11 @@ class TaskUtils {
             const canEdit = true; // すべてのユーザーがタスクを編集可能にする
             const canDelete = task.createdBy && currentUser && task.createdBy._id === currentUser._id;
             
+            const isCompleted = task.status === 'completed';
+            
             return `
-                <div class="task-item ${task.completed ? 'completed' : ''}" id="task-${taskId}">
-                    <div class="task-checkbox ${task.completed ? 'checked' : ''}"></div>
+                <div class="task-item ${isCompleted ? 'completed' : ''}" id="task-${taskId}">
+                    <div class="task-checkbox ${isCompleted ? 'checked' : ''}"></div>
                     <div class="task-content">
                         <div class="task-title">${TaskUtils.escapeHtml(task.title || 'タイトルなし')}</div>
                         <div class="task-meta">

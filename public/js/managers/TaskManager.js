@@ -312,10 +312,10 @@ class TaskManager {
         }
         const now = new Date();
         const total = this.tasks.length;
-        const completed = this.tasks.filter(task => task.completed).length;
-        const pending = this.tasks.filter(task => !task.completed && task.status !== 'completed').length;
+        const completed = this.tasks.filter(task => task.status === 'completed').length;
+        const pending = this.tasks.filter(task => task.status === 'pending').length;
         const overdue = this.tasks.filter(task => {
-            if (task.completed) return false;
+            if (task.status === 'completed') return false;
             if (!task.dueDate) return false;
             return new Date(task.dueDate) < now;
         }).length;
