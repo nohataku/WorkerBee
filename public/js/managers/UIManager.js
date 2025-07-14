@@ -391,7 +391,8 @@ class UIManager {
         try {
             console.log('Populating task edit form with:', task);
             
-            if (!task || !task._id) {
+            const taskId = task?._id || task?.id;
+            if (!task || !taskId) {
                 console.error('Invalid task data for editing:', task);
                 this.notificationManager.show('error', 'エラー', '無効なタスクデータです');
                 return;
@@ -400,7 +401,7 @@ class UIManager {
             // 最新のタスクデータを取得
             let taskData = task;
             try {
-                taskData = await this.taskManager.getTaskDetails(task._id);
+                taskData = await this.taskManager.getTaskDetails(taskId);
                 console.log('Latest task data retrieved:', taskData);
             } catch (error) {
                 console.warn('Failed to get latest task details, using current data:', error);

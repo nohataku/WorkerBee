@@ -378,12 +378,13 @@ class EventManager {
             }
             
             const user = this.authManager.getUser();
+            const userId = user?._id || user?.id;
             const taskData = {
                 title,
                 description,
                 priority,
                 dueDate: dueDate || null,
-                assignedTo: assignedToUserId || user._id
+                assignedTo: assignedToUserId || userId
             };
             
             const result = await this.taskManager.saveTask(taskData);
