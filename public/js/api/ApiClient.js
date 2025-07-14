@@ -106,10 +106,12 @@ class ApiClient {
 
             const result = await response.json();
             console.log(`API Response [${this.config.current}]: ${method} ${url}`, result);
+            console.log('🔍 Debug - Raw response object:', JSON.stringify(result, null, 2));
             
             // 環境に応じたレスポンス処理
             if (this.config.current === 'development') {
                 // Node.jsサーバーからの直接レスポンス
+                console.log('🔍 Debug - Returning Node.js response:', result);
                 return result;
             } else {
                 // GASからのレスポンス（success/data形式）

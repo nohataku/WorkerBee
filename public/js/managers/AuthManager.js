@@ -47,11 +47,32 @@ class AuthManager {
             });
 
             console.log('Login API response:', response);
+            console.log('🔍 Debug - Response structure:', JSON.stringify(response, null, 2));
 
-            // GAS環境では、ApiClientがresult.dataを直接返すため、responseにはユーザー情報が含まれる
-            if (response && response.user) {
-                // トークンは現在のシステムでは使用していないため、ユーザー情報のみ設定
-                this.user = response.user;
+            // Node.js環境とGAS環境の両方に対応
+            let user, token;
+            
+            if (response && response.success && response.data) {
+                // Node.js環境からのレスポンス形式: { success: true, data: { user, token } }
+                console.log('🔍 Debug - Detected Node.js response format');
+                user = response.data.user;
+                token = response.data.token;
+            } else if (response && response.user) {
+                // GAS環境からのレスポンス形式: { user, token }（ApiClientで処理済み）
+                console.log('🔍 Debug - Detected GAS response format');
+                user = response.user;
+                token = response.token;
+            }
+
+            console.log('🔍 Debug - Extracted user:', user);
+            console.log('🔍 Debug - Extracted token:', token ? 'Token present' : 'No token');
+
+            if (user) {
+                // ユーザー情報とトークンを設定
+                this.user = user;
+                if (token) {
+                    this.apiClient.setToken(token);
+                }
                 
                 console.log('Login successful, showing notification...');
                 this.notificationManager.show('success', 'ログイン成功', 'ようこそ！');
@@ -59,17 +80,37 @@ class AuthManager {
                 return { success: true, user: this.user };
             } else {
                 console.log('Login failed: Invalid response format');
-                this.notificationManager.show('error', 'ログインエラー', 'ログインに失敗しました');
-                return { success: false, message: 'ログインに失敗しました' };
+                
+                // サーバーからの詳細なエラーメッセージがある場合はそれを使用
+                let errorMessage = 'ログインに失敗しました';
+                if (response && response.message) {
+                    errorMessage = response.message;
+                } else if (response && !response.success && response.message) {
+                    errorMessage = response.message;
+                }
+                
+                this.notificationManager.show('error', 'ログインエラー', errorMessage);
+                return { success: false, message: errorMessage };
             }
         } catch (error) {
             console.error('Login error:', error);
-            // 認証関連のエラーは除外（既に適切に処理されているため）
-            if (!error.message.includes('認証が必要です')) {
-                console.log('Showing login error notification...');
-                this.notificationManager.show('error', 'ログインエラー', 'ログイン中にエラーが発生しました');
+            
+            // サーバーからのエラーメッセージを解析
+            let errorMessage = 'ログイン中にエラーが発生しました';
+            if (error.message) {
+                if (error.message.includes('メールアドレスまたはパスワードが正しくありません')) {
+                    errorMessage = 'メールアドレスまたはパスワードが正しくありません';
+                } else if (error.message.includes('認証が必要です')) {
+                    // 認証関連のエラーは除外（既に適切に処理されているため）
+                    return { success: false, error: error.message };
+                } else {
+                    errorMessage = error.message;
+                }
             }
-            return { success: false, error: error.message };
+            
+            console.log('Showing login error notification...');
+            this.notificationManager.show('error', 'ログインエラー', errorMessage);
+            return { success: false, error: errorMessage };
         }
     }
 
