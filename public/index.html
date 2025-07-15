@@ -112,6 +112,9 @@
         <!-- ヘッダー -->
         <header class="app-header">
             <div class="header-left">
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <i class="fas fa-bars"></i>
+                </button>
                 <h1><i class="fas fa-tasks"></i> WorkerBee</h1>
             </div>
             <div class="header-center">
@@ -144,8 +147,17 @@
             </div>
         </header>
 
+        <!-- モバイル用オーバーレイ -->
+        <div class="mobile-overlay" id="mobileOverlay"></div>
+
         <!-- サイドバー -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>メニュー</h2>
+                <button class="close-sidebar-btn" id="closeSidebarBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
             <nav class="sidebar-nav">
                 <a href="#" class="nav-item active" data-view="dashboard">
                     <i class="fas fa-home"></i> ダッシュボード

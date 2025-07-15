@@ -6,6 +6,92 @@ class UIManager {
         this.currentView = 'dashboard';
         this.calendarManager = null;
         this.ganttManager = null;
+        this.isMobileSidebarOpen = false;
+        this.initializeMobileMenu();
+    }
+
+    initializeMobileMenu() {
+        // モバイルメニューのイベントリスナーを設定
+        document.addEventListener('DOMContentLoaded', () => {
+            this.bindMobileMenuEvents();
+        });
+    }
+
+    bindMobileMenuEvents() {
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+        const mobileOverlay = document.getElementById('mobileOverlay');
+        const sidebar = document.getElementById('sidebar');
+
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', () => {
+                this.toggleMobileSidebar();
+            });
+        }
+
+        if (closeSidebarBtn) {
+            closeSidebarBtn.addEventListener('click', () => {
+                this.closeMobileSidebar();
+            });
+        }
+
+        if (mobileOverlay) {
+            mobileOverlay.addEventListener('click', () => {
+                this.closeMobileSidebar();
+            });
+        }
+
+        // ナビゲーションアイテムクリック時にモバイルサイドバーを閉じる
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    this.closeMobileSidebar();
+                }
+            });
+        });
+
+        // ウィンドウリサイズ時の処理
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                this.closeMobileSidebar();
+            }
+        });
+    }
+
+    toggleMobileSidebar() {
+        if (this.isMobileSidebarOpen) {
+            this.closeMobileSidebar();
+        } else {
+            this.openMobileSidebar();
+        }
+    }
+
+    openMobileSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const mobileOverlay = document.getElementById('mobileOverlay');
+        
+        if (sidebar && mobileOverlay) {
+            sidebar.classList.add('active');
+            mobileOverlay.classList.add('active');
+            this.isMobileSidebarOpen = true;
+            
+            // スクロールを無効化
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    closeMobileSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const mobileOverlay = document.getElementById('mobileOverlay');
+        
+        if (sidebar && mobileOverlay) {
+            sidebar.classList.remove('active');
+            mobileOverlay.classList.remove('active');
+            this.isMobileSidebarOpen = false;
+            
+            // スクロールを有効化
+            document.body.style.overflow = '';
+        }
     }
 
     showAuthContainer() {
@@ -18,6 +104,11 @@ class UIManager {
         document.getElementById('loadingScreen').style.display = 'none';
         document.getElementById('authContainer').style.display = 'none';
         document.getElementById('appContainer').style.display = 'grid';
+        
+        // モバイルメニューのイベントリスナーを設定
+        setTimeout(() => {
+            this.bindMobileMenuEvents();
+        }, 100);
     }
 
     showLoginForm() {
