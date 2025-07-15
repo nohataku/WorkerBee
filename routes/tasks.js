@@ -40,6 +40,9 @@ router.get('/', [
         const tasksArray = Array.isArray(tasks) ? tasks : [];
         const usersArray = Array.isArray(users) ? users : [];
 
+        console.log('📊 Tasks array length after validation:', tasksArray.length);
+        console.log('📊 Users array length after validation:', usersArray.length);
+
         // ユーザーマップを作成（高速検索用）
         const userMap = new Map();
         usersArray.forEach(user => {
@@ -138,17 +141,22 @@ router.get('/', [
             }
         }).filter(task => task !== null);
 
-        console.log('Normalized tasks:', normalizedTasks.length);
+        console.log('📊 Normalized tasks count:', normalizedTasks.length);
+        console.log('📊 Tasks that failed normalization:', tasksArray.length - normalizedTasks.length);
 
         // フィルタリング
         let filteredTasks = normalizedTasks;
         
+        console.log('📊 Before filtering - Total tasks:', filteredTasks.length);
+        
         if (status !== 'all') {
             filteredTasks = filteredTasks.filter(task => task.status === status);
+            console.log('📊 After status filter (' + status + '):', filteredTasks.length);
         }
 
         if (priority) {
             filteredTasks = filteredTasks.filter(task => task.priority === priority);
+            console.log('📊 After priority filter (' + priority + '):', filteredTasks.length);
         }
 
         if (search) {
@@ -157,6 +165,7 @@ router.get('/', [
                 task.title.toLowerCase().includes(searchLower) ||
                 (task.description && task.description.toLowerCase().includes(searchLower))
             );
+            console.log('📊 After search filter (' + search + '):', filteredTasks.length);
         }
 
         // ソート
@@ -166,13 +175,16 @@ router.get('/', [
             return sortOrder === 'desc' ? bValue - aValue : aValue - bValue;
         });
 
+        console.log('📊 After sorting:', filteredTasks.length);
+
         // 制限
         const limitNum = parseInt(limit) || 50;
         if (limitNum > 0) {
             filteredTasks = filteredTasks.slice(0, limitNum);
+            console.log('📊 After limit (' + limitNum + '):', filteredTasks.length);
         }
 
-        console.log('Final filtered tasks:', filteredTasks.length);
+        console.log('✅ Final filtered tasks count:', filteredTasks.length);
 
         res.json({
             success: true,
@@ -528,7 +540,7 @@ router.get('/:id', async (req, res) => {
                 if (createdUser) {
                     createdByInfo = {
                         _id: createdUser._id || createdUser.id,
-                        displayName: createdUser.displayName || createdUser.username || createdByInfo.email,
+                        displayName: createdUser.displayName || createdUser.username || createdUser.email,
                         email: createdUser.email || ''
                     };
                 } else {

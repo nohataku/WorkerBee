@@ -108,9 +108,14 @@ class GasService {
             console.log('GAS getTasks response data:', response.data);
             
             if (response.data && response.data.success) {
-                const tasks = response.data.data || [];
-                console.log('Successfully retrieved tasks from GAS:', tasks.length);
-                return Array.isArray(tasks) ? tasks : [];
+                const responseData = response.data.data || {};
+                const tasks = responseData.tasks || responseData || [];
+                console.log('📊 GAS getTasks - Raw tasks count:', tasks.length);
+                console.log('📊 GAS getTasks - Tasks array is valid:', Array.isArray(tasks));
+                
+                const validTasks = Array.isArray(tasks) ? tasks : [];
+                console.log('✅ Successfully retrieved tasks from GAS:', validTasks.length);
+                return validTasks;
             } else {
                 console.error('GAS returned unsuccessful response:', response.data);
                 throw new Error(response.data?.message || 'タスク取得に失敗しました');
