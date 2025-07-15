@@ -272,7 +272,14 @@ class UIManager {
             console.log('Gantt view selected');
             // EventManagerのhandleGanttLoadを呼び出す
             if (this.eventManager) {
-                this.eventManager.handleGanttLoad().catch(error => {
+                this.eventManager.handleGanttLoad().then(() => {
+                    // ガントチャートが読み込まれた後、モバイル対応の調整
+                    setTimeout(() => {
+                        if (this.ganttManager && this.ganttManager.isInitialized) {
+                            this.ganttManager.handleResize();
+                        }
+                    }, 200);
+                }).catch(error => {
                     console.error('Error loading gantt:', error);
                 });
             }
