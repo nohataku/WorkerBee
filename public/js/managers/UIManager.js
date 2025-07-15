@@ -196,12 +196,14 @@ class UIManager {
             console.log('Creating new GanttManager...');
             this.ganttManager = new GanttManager(this.taskManager, this.notificationManager);
             this.ganttManager.init();
+            
+            // TaskManagerにGanttManagerの参照を設定
+            this.taskManager.setGanttManager(this.ganttManager);
         }
         
-        // タスクデータを読み込み
-        const tasks = this.taskManager.getTasks();
-        console.log('Loading tasks to gantt:', tasks.length, 'tasks');
-        this.ganttManager.loadTasks(tasks);
+        // タスクデータを読み込み（フィルタを無視してすべてのタスクを取得）
+        console.log('Loading all tasks to gantt...');
+        this.ganttManager.loadAllTasks();
     }
 
     async renderTasks() {
@@ -350,6 +352,11 @@ class UIManager {
                 console.log('Users loaded in showTaskModal:', users);
                 this.setupUserDropdown(users);
                 
+                // 依存関係のドロップダウンを設定
+                const tasks = this.taskManager.getTasks();
+                const currentTaskId = this.taskManager.getCurrentEditingTask()?.id || this.taskManager.getCurrentEditingTask()?._id;
+                this.setupDependencyDropdown(tasks, currentTaskId);
+                
                 console.log('Task modal shown:', this.taskManager.getCurrentEditingTask() ? 'Edit mode' : 'Create mode');
             } else {
                 console.error('Task modal element not found');
@@ -382,6 +389,22 @@ class UIManager {
             const assignedToField = document.getElementById('taskAssignedTo');
             if (assignedToField) {
                 assignedToField.value = '';
+            }
+            
+            // 依存関係プルダウンのリセット
+            const dependenciesField = document.getElementById('taskDependencies');
+            if (dependenciesField) {
+                dependenciesField.selectedIndex = -1;
+            }
+            
+            // 開始日・期限日のリセット
+            const startDateField = document.getElementById('taskStartDate');
+            const dueDateField = document.getElementById('taskDueDate');
+            if (startDateField) {
+                startDateField.value = '';
+            }
+            if (dueDateField) {
+                dueDateField.value = '';
             }
             
             // ユーザー検索結果を非表示（互換性のため保持）
@@ -511,6 +534,7 @@ class UIManager {
             const titleField = document.getElementById('taskTitle');
             const descriptionField = document.getElementById('taskDescription');
             const priorityField = document.getElementById('taskPriority');
+            const startDateField = document.getElementById('taskStartDate');
             const dueDateField = document.getElementById('taskDueDate');
             const assignedToField = document.getElementById('taskAssignedTo');
             
@@ -518,6 +542,22 @@ class UIManager {
             if (titleField) titleField.value = taskData?.title || '';
             if (descriptionField) descriptionField.value = taskData?.description || '';
             if (priorityField) priorityField.value = taskData?.priority || 'medium';
+            
+            // 開始日の設定
+            if (startDateField) {
+                startDateField.value = ''; // まずクリア
+                if (taskData?.startDate) {
+                    try {
+                        const date = new Date(taskData.startDate);
+                        if (!isNaN(date.getTime())) {
+                            // 日時フィールド用のフォーマット（YYYY-MM-DDTHH:mm）
+                            startDateField.value = date.toISOString().slice(0, 16);
+                        }
+                    } catch (error) {
+                        console.warn('Invalid start date format:', taskData.startDate, error);
+                    }
+                }
+            }
             
             // 期限日の設定
             if (dueDateField) {
@@ -553,6 +593,24 @@ class UIManager {
                 console.log('Assigned user set to:', assignedToField.value);
             }
             
+            // 依存関係の設定
+            const dependenciesField = document.getElementById('taskDependencies');
+            if (dependenciesField) {
+                // 依存関係ドロップダウンを更新
+                const tasks = this.taskManager.getTasks();
+                const taskId = taskData?.id || taskData?._id;
+                this.setupDependencyDropdown(tasks, taskId);
+                
+                // 現在の依存関係を選択
+                if (taskData?.dependencies && Array.isArray(taskData.dependencies)) {
+                    Array.from(dependenciesField.options).forEach(option => {
+                        option.selected = taskData.dependencies.includes(option.value);
+                    });
+                }
+                
+                console.log('Dependencies set to:', taskData?.dependencies);
+            }
+            
             console.log('Task edit form populated successfully');
             
         } catch (error) {
@@ -570,7 +628,44 @@ class UIManager {
         }
         
         if (this.ganttManager) {
-            this.ganttManager.loadTasks(tasks);
+            this.ganttManager.loadAllTasks();
+        }
+    }
+
+    // リアルタイム更新を各ビューに通知
+    onTaskUpdated(updatedTask) {
+        console.log('UIManager: Real-time task update received:', updatedTask);
+        
+        if (this.calendarManager) {
+            this.calendarManager.onTaskUpdated && this.calendarManager.onTaskUpdated(updatedTask);
+        }
+        
+        if (this.ganttManager) {
+            this.ganttManager.onTaskUpdated(updatedTask);
+        }
+    }
+
+    onTaskDeleted(deletedTaskId) {
+        console.log('UIManager: Real-time task deletion received:', deletedTaskId);
+        
+        if (this.calendarManager) {
+            this.calendarManager.onTaskDeleted && this.calendarManager.onTaskDeleted(deletedTaskId);
+        }
+        
+        if (this.ganttManager) {
+            this.ganttManager.onTaskDeleted(deletedTaskId);
+        }
+    }
+
+    onTaskAdded(newTask) {
+        console.log('UIManager: Real-time task addition received:', newTask);
+        
+        if (this.calendarManager) {
+            this.calendarManager.onTaskAdded && this.calendarManager.onTaskAdded(newTask);
+        }
+        
+        if (this.ganttManager) {
+            this.ganttManager.onTaskAdded(newTask);
         }
     }
 
@@ -579,6 +674,54 @@ class UIManager {
             this.calendarManager.refreshCalendar();
         } else if (this.currentView === 'gantt' && this.ganttManager) {
             this.ganttManager.refreshGantt();
+        }
+    }
+
+    openTaskModal(mode = 'create', task = null) {
+        console.log('Opening task modal:', mode, task);
+        
+        // 編集モードの場合、現在のタスクを設定
+        if (mode === 'edit' && task) {
+            this.taskManager.setCurrentEditingTask(task);
+        } else {
+            this.taskManager.setCurrentEditingTask(null);
+        }
+        
+        // モーダルを表示
+        this.showTaskModal();
+    }
+
+    setupDependencyDropdown(tasks, currentTaskId = null) {
+        try {
+            console.log('=== SETUP DEPENDENCY DROPDOWN ===');
+            const dropdown = document.getElementById('taskDependencies');
+            if (!dropdown) {
+                console.error('Dependency dropdown element not found');
+                return;
+            }
+
+            console.log('Setting up dependency dropdown with tasks:', tasks);
+
+            // 既存のオプションをクリア
+            dropdown.innerHTML = '';
+
+            // 現在のタスクを除外し、利用可能なタスクを追加
+            const availableTasks = tasks.filter(task => {
+                const taskId = task._id || task.id;
+                return taskId !== currentTaskId && task.status !== 'completed';
+            });
+
+            availableTasks.forEach(task => {
+                const option = document.createElement('option');
+                option.value = task._id || task.id;
+                option.textContent = `${task.title} (${task.status})`;
+                dropdown.appendChild(option);
+            });
+
+            console.log('Dependency dropdown populated with', availableTasks.length, 'tasks');
+            
+        } catch (error) {
+            console.error('Error setting up dependency dropdown:', error);
         }
     }
 }

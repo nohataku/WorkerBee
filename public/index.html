@@ -382,6 +382,12 @@
                         </select>
                     </div>
                     <div class="form-group">
+                        <label for="taskStartDate">開始日</label>
+                        <input type="datetime-local" id="taskStartDate">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
                         <label for="taskDueDate">期限</label>
                         <input type="datetime-local" id="taskDueDate">
                     </div>
@@ -392,6 +398,15 @@
                         <select id="taskAssignedTo">
                             <option value="">担当者を選択...</option>
                         </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="taskDependencies">依存関係</label>
+                    <div class="dependencies-select">
+                        <select id="taskDependencies" multiple>
+                            <option value="">依存するタスクを選択...</option>
+                        </select>
+                        <small class="form-help">このタスクを開始する前に完了する必要があるタスクを選択してください（複数選択可）</small>
                     </div>
                 </div>
                 <div class="modal-actions">

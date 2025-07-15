@@ -53,8 +53,11 @@ class TaskUtils {
                 throw new Error('Invalid task data');
             }
 
+            // 日付処理（開始日と期限日）
+            const startDate = task.startDate ? new Date(task.startDate) : null;
             const dueDate = task.dueDate ? new Date(task.dueDate) : null;
             const isOverdue = dueDate && dueDate < new Date() && task.status !== 'completed';
+            const startDateStr = startDate ? TaskUtils.formatDate(startDate) : '';
             const dueDateStr = dueDate ? TaskUtils.formatDate(dueDate) : '';
             
             // assignedToの安全な処理
@@ -163,6 +166,15 @@ class TaskUtils {
             
             const isCompleted = task.status === 'completed';
             
+            // 依存関係の情報を生成
+            let dependencyInfo = '';
+            if (task.dependencyTasks && task.dependencyTasks.length > 0) {
+                const dependencyTitles = task.dependencyTasks.map(dep => dep.title).join(', ');
+                dependencyInfo = `<div class="task-dependencies">
+                    <i class="fas fa-link"></i> 依存: ${TaskUtils.escapeHtml(dependencyTitles)}
+                </div>`;
+            }
+            
             return `
                 <div class="task-item ${isCompleted ? 'completed' : ''}" id="task-${taskId}">
                     <div class="task-checkbox ${isCompleted ? 'checked' : ''}"></div>
@@ -170,14 +182,18 @@ class TaskUtils {
                         <div class="task-title">${TaskUtils.escapeHtml(task.title || 'タイトルなし')}</div>
                         <div class="task-meta">
                             <span class="task-priority ${task.priority || 'medium'}">${TaskUtils.getPriorityLabel(task.priority || 'medium')}</span>
+                            ${startDateStr ? `<span class="task-start-date">
+                                <i class="fas fa-play"></i> 開始: ${startDateStr}
+                            </span>` : ''}
                             ${dueDateStr ? `<span class="task-due-date ${isOverdue ? 'overdue' : ''}">
-                                <i class="fas fa-calendar"></i> ${dueDateStr}
+                                <i class="fas fa-calendar"></i> 期限: ${dueDateStr}
                             </span>` : ''}
                             <span class="task-assignee">
                                 <div class="task-assignee-avatar">${assigneeInitials || '?'}</div>
                                 ${assigneeName}
                             </span>
                         </div>
+                        ${dependencyInfo}
                     </div>
                     <div class="task-actions">
                         <button class="task-action-btn edit" title="編集" data-task-id="${taskId}">

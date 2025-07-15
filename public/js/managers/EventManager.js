@@ -360,15 +360,22 @@ class EventManager {
             const title = document.getElementById('taskTitle').value.trim();
             const description = document.getElementById('taskDescription').value.trim();
             const priority = document.getElementById('taskPriority').value;
+            const startDate = document.getElementById('taskStartDate').value;
             const dueDate = document.getElementById('taskDueDate').value;
             const assignedToUserId = document.getElementById('taskAssignedTo').value;
+            
+            // 依存関係の取得
+            const dependenciesSelect = document.getElementById('taskDependencies');
+            const dependencies = Array.from(dependenciesSelect.selectedOptions).map(option => option.value);
             
             console.log('Submitting task:', {
                 title,
                 description,
                 priority,
+                startDate,
                 dueDate,
                 assignedToUserId,
+                dependencies,
                 isEdit: !!this.taskManager.getCurrentEditingTask()
             });
             
@@ -377,14 +384,26 @@ class EventManager {
                 return;
             }
             
+            // 日付の検証
+            if (startDate && dueDate) {
+                const start = new Date(startDate);
+                const due = new Date(dueDate);
+                if (start > due) {
+                    this.notificationManager.show('error', 'エラー', '開始日は期限日より前に設定してください');
+                    return;
+                }
+            }
+            
             const user = this.authManager.getUser();
             const userId = user?._id || user?.id;
             const taskData = {
                 title,
                 description,
                 priority,
+                startDate: startDate || null,
                 dueDate: dueDate || null,
-                assignedTo: assignedToUserId || userId
+                assignedTo: assignedToUserId || userId,
+                dependencies: dependencies
             };
             
             const result = await this.taskManager.saveTask(taskData);

@@ -5,6 +5,8 @@ class GanttManager {
         this.gantt = null;
         this.tasks = [];
         this.isInitialized = false;
+        this.isUpdating = false; // 更新中フラグ
+        this.pendingUpdates = new Map(); // 保留中の更新を追跡
     }
 
     init() {
@@ -36,14 +38,25 @@ class GanttManager {
         console.log('Configuring Gantt chart...');
         // ガントチャートの設定
         gantt.config.date_format = "%Y-%m-%d %H:%i:%s";
-        gantt.config.scale_unit = "week";
-        gantt.config.date_scale = "%M %d";
-        gantt.config.subscales = [
-            { unit: "day", step: 1, date: "%d" }
-        ];
         gantt.config.autosize = "y";
         gantt.config.fit_tasks = true;
         gantt.config.grid_width = 350;
+        
+        // 新しいスケール設定形式を使用
+        gantt.config.scales = [
+            {unit: "week", step: 1, format: "%M %d"},
+            {unit: "day", step: 1, format: "%d"}
+        ];
+        
+        // ドラッグ&ドロップとリサイズを有効化
+        gantt.config.drag_move = true;
+        gantt.config.drag_resize = true;
+        gantt.config.drag_progress = false; // プログレスのドラッグは無効化
+        gantt.config.drag_links = false; // リンクのドラッグは無効化（今後実装）
+        
+        // 確認ダイアログを無効化（カスタムで処理）
+        gantt.config.auto_scheduling = false;
+        gantt.config.auto_scheduling_strict = false;
         
         // 列の設定
         gantt.config.columns = [
@@ -116,6 +129,15 @@ class GanttManager {
             this.handleTaskDelete(id, task);
         });
 
+        // タスクの移動・リサイズ時のイベント
+        gantt.attachEvent("onAfterTaskMove", (id, mode, task) => {
+            this.handleTaskMove(id, mode, task);
+        });
+
+        gantt.attachEvent("onAfterTaskDrag", (id, mode, task) => {
+            this.handleTaskDrag(id, mode, task);
+        });
+
         gantt.attachEvent("onTaskDblClick", (id, e) => {
             this.handleTaskDoubleClick(id);
             return false; // デフォルトの編集を無効化
@@ -150,17 +172,115 @@ class GanttManager {
 
     loadTasks(tasks) {
         this.tasks = tasks;
-        this.updateGanttData();
+        // ユーザーリストの読み込みを確実に行ってからガントチャートを更新
+        this.taskManager.loadAllUsers().then(() => {
+            this.updateGanttData();
+        }).catch(error => {
+            console.warn('Failed to load users for gantt chart:', error);
+            // ユーザーリストの読み込みに失敗してもガントチャートは更新
+            this.updateGanttData();
+        });
+    }
+
+    async loadAllTasks() {
+        try {
+            console.log('GanttManager: Loading all tasks for gantt chart...');
+            
+            // フィルタを無視してすべてのタスクを取得
+            const response = await this.taskManager.apiClient.call('/api/tasks?status=all&limit=100');
+            
+            let allTasks = [];
+            if (response && response.tasks) {
+                allTasks = response.tasks;
+            } else if (Array.isArray(response)) {
+                allTasks = response;
+            } else if (response && response.success && response.data) {
+                allTasks = response.data.tasks || [];
+            }
+            
+            console.log('GanttManager: Loaded', allTasks.length, 'tasks for gantt chart');
+            this.tasks = allTasks;
+            
+            // ユーザーリストの読み込みを確実に行ってからガントチャートを更新
+            this.taskManager.loadAllUsers().then(() => {
+                this.updateGanttData();
+            }).catch(error => {
+                console.warn('Failed to load users for gantt chart:', error);
+                // ユーザーリストの読み込みに失敗してもガントチャートは更新
+                this.updateGanttData();
+            });
+        } catch (error) {
+            console.error('Error loading all tasks for gantt chart:', error);
+            // フォールバック：TaskManagerの現在のタスクを使用
+            this.tasks = this.taskManager.getTasks();
+            this.updateGanttData();
+        }
     }
 
     updateGanttData() {
+        // TaskManagerから最新のタスクデータを取得
+        const latestTasks = this.taskManager.getTasks();
+        this.tasks = latestTasks;
+        
+        console.log('GanttManager - TaskManager tasks:', latestTasks.length);
+        console.log('GanttManager - All tasks:', latestTasks.map(t => ({ id: t.id || t._id, title: t.title, status: t.status })));
+        
+        // "test"を含むタスクを特別に確認
+        const testTasks = latestTasks.filter(t => t.title && t.title.toLowerCase().includes('test'));
+        console.log('GanttManager - Test tasks found:', testTasks.length);
+        testTasks.forEach(task => {
+            console.log('GanttManager - Test task:', {
+                id: task.id || task._id,
+                title: task.title,
+                status: task.status,
+                createdAt: task.createdAt,
+                dueDate: task.dueDate
+            });
+        });
+        
         const ganttData = {
             data: this.tasks.map(task => {
                 const startDate = task.createdAt ? new Date(task.createdAt) : new Date();
                 const endDate = task.dueDate ? new Date(task.dueDate) : new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
                 
-                return {
-                    id: task.id,
+                // 担当者名の解決
+                let assigneeName = '未割り当て';
+                if (task.assignedTo) {
+                    // TaskManagerから全ユーザーリストを取得
+                    const allUsers = this.taskManager.getAllUsers();
+                    
+                    if (task.assignedTo.displayName) {
+                        // オブジェクトの場合
+                        assigneeName = task.assignedTo.displayName;
+                    } else if (typeof task.assignedTo === 'string' && allUsers.length > 0) {
+                        // IDの場合、ユーザーリストから検索
+                        const assignedUser = allUsers.find(user => 
+                            user._id === task.assignedTo || 
+                            user.id === task.assignedTo ||
+                            user.email === task.assignedTo
+                        );
+                        if (assignedUser) {
+                            assigneeName = assignedUser.displayName || assignedUser.username || assignedUser.email || '不明';
+                        }
+                    } else if (task.assignedTo._id && allUsers.length > 0) {
+                        // オブジェクトでIDが含まれる場合
+                        const assignedUser = allUsers.find(user => 
+                            user._id === task.assignedTo._id || 
+                            user.id === task.assignedTo._id
+                        );
+                        if (assignedUser) {
+                            assigneeName = assignedUser.displayName || assignedUser.username || assignedUser.email || '不明';
+                        }
+                    }
+                }
+                
+                // 後方互換性のため、assignedToNameも確認
+                if (assigneeName === '未割り当て' && task.assignedToName) {
+                    assigneeName = task.assignedToName;
+                }
+                
+                const ganttTask = {
+                    id: task._id || task.id,
                     text: task.title,
                     start_date: this.formatDate(startDate),
                     end_date: this.formatDate(endDate),
@@ -168,16 +288,22 @@ class GanttManager {
                     progress: task.status === 'completed' ? 1 : 0,
                     priority: task.priority,
                     status: task.status,
-                    assignee: task.assignedToName || '未割り当て',
+                    assignee: assigneeName,
                     description: task.description || '',
                     originalTask: task
                 };
+                
+                console.log('Gantt task created:', ganttTask.text, 'Start:', ganttTask.start_date, 'End:', ganttTask.end_date);
+                return ganttTask;
             }),
             links: [] // タスク間の依存関係（今後実装）
         };
 
+        console.log('Updating gantt data with:', ganttData.data.length, 'tasks');
+        console.log('Gantt data tasks:', ganttData.data.map(t => ({ id: t.id, text: t.text, status: t.status })));
         gantt.clearAll();
         gantt.parse(ganttData);
+        gantt.render(); // ガントチャートを再描画
     }
 
     formatDate(date) {
@@ -198,7 +324,7 @@ class GanttManager {
     }
 
     zoomIn() {
-        const currentScale = gantt.config.scale_unit;
+        const currentScale = gantt.config.scales[0].unit;
         
         if (currentScale === "month") {
             this.changeScale("week");
@@ -208,7 +334,7 @@ class GanttManager {
     }
 
     zoomOut() {
-        const currentScale = gantt.config.scale_unit;
+        const currentScale = gantt.config.scales[0].unit;
         
         if (currentScale === "day") {
             this.changeScale("week");
@@ -220,24 +346,21 @@ class GanttManager {
     changeScale(scale) {
         switch (scale) {
             case "day":
-                gantt.config.scale_unit = "day";
-                gantt.config.date_scale = "%M %d";
-                gantt.config.subscales = [
-                    { unit: "hour", step: 6, date: "%H:%i" }
+                gantt.config.scales = [
+                    {unit: "day", step: 1, format: "%M %d"},
+                    {unit: "hour", step: 6, format: "%H:%i"}
                 ];
                 break;
             case "week":
-                gantt.config.scale_unit = "week";
-                gantt.config.date_scale = "%M %d";
-                gantt.config.subscales = [
-                    { unit: "day", step: 1, date: "%d" }
+                gantt.config.scales = [
+                    {unit: "week", step: 1, format: "%M %d"},
+                    {unit: "day", step: 1, format: "%d"}
                 ];
                 break;
             case "month":
-                gantt.config.scale_unit = "month";
-                gantt.config.date_scale = "%Y年%M";
-                gantt.config.subscales = [
-                    { unit: "week", step: 1, date: "%d" }
+                gantt.config.scales = [
+                    {unit: "month", step: 1, format: "%Y年%M"},
+                    {unit: "week", step: 1, format: "%d"}
                 ];
                 break;
         }
@@ -253,22 +376,212 @@ class GanttManager {
         console.log('Task added:', id, task);
     }
 
-    handleTaskUpdate(id, task) {
+    async handleTaskUpdate(id, task) {
         const originalTask = task.originalTask;
         if (originalTask) {
-            // 期限の更新
-            const newDueDate = new Date(task.end_date);
-            originalTask.dueDate = newDueDate.toISOString();
-            
-            // サーバーに更新を送信
-            this.taskManager.updateTask(originalTask.id, { 
-                dueDate: originalTask.dueDate 
-            }).then(() => {
-                this.notificationManager.show('タスクを更新しました', 'success');
-            }).catch((error) => {
+            // 既に更新中の場合は待機
+            if (this.isUpdating) {
+                console.log('Update already in progress, skipping task update');
+                return;
+            }
+
+            this.isUpdating = true;
+
+            try {
+                // タスクIDを確実に取得
+                const taskId = originalTask._id || originalTask.id;
+                
+                if (!taskId) {
+                    console.error('Task ID not found:', originalTask);
+                    return;
+                }
+                
+                // 期限の更新
+                const newDueDate = new Date(task.end_date);
+                const updateData = { dueDate: newDueDate.toISOString() };
+                
+                console.log('Updating task:', taskId, updateData);
+                console.log('Original task:', originalTask);
+                console.log('Gantt task:', task);
+                
+                // 安全な更新データのみを送信
+                const safeUpdateData = { dueDate: updateData.dueDate };
+                console.log('Safe update data to send:', safeUpdateData);
+                
+                // サーバーに更新を送信
+                const response = await this.taskManager.updateTask(taskId, safeUpdateData);
+                
+                console.log('Task update successful:', response);
+                if (response.success) {
+                    this.notificationManager.show('タスクを更新しました', 'success');
+                    
+                    // TaskManagerのタスクデータを更新
+                    const taskIndex = this.taskManager.tasks.findIndex(t => (t._id === taskId || t.id === taskId));
+                    if (taskIndex !== -1) {
+                        this.taskManager.tasks[taskIndex].dueDate = updateData.dueDate;
+                    }
+                    
+                    // ガントチャートのデータを更新して再描画
+                    this.updateGanttData();
+                    
+                    // 明示的に再描画
+                    setTimeout(() => {
+                        if (gantt && gantt.render) {
+                            gantt.render();
+                        }
+                    }, 100);
+                } else {
+                    this.notificationManager.show('タスクの更新に失敗しました', 'error');
+                    this.updateGanttData(); // 元のデータに戻す
+                }
+            } catch (error) {
+                console.error('Task update failed:', error);
                 this.notificationManager.show('タスクの更新に失敗しました', 'error');
                 this.updateGanttData(); // 元のデータに戻す
-            });
+            } finally {
+                this.isUpdating = false;
+            }
+        } else {
+            console.error('Original task not found for gantt task:', task);
+        }
+    }
+
+    handleTaskMove(id, mode, task) {
+        console.log('Task moved:', id, mode, task);
+        this.handleTaskDateChange(id, task, 'move');
+    }
+
+    handleTaskDrag(id, mode, task) {
+        console.log('Task dragged:', id, mode, task);
+        this.handleTaskDateChange(id, task, 'drag');
+    }
+
+    async handleTaskDateChange(id, task, changeType) {
+        const originalTask = task.originalTask;
+        if (!originalTask) {
+            console.warn('Original task not found for task:', id);
+            return;
+        }
+
+        // タスクIDを確実に取得
+        const taskId = originalTask._id || originalTask.id;
+        
+        if (!taskId) {
+            console.error('Task ID not found:', originalTask);
+            return;
+        }
+
+        // 既に更新中の場合は待機
+        if (this.isUpdating) {
+            console.log('Update already in progress, queuing update for task:', taskId);
+            this.pendingUpdates.set(taskId, { task, changeType });
+            return;
+        }
+
+        this.isUpdating = true;
+
+        console.log(`Task ${changeType} detected:`, {
+            id: id,
+            taskId: taskId,
+            originalTask: originalTask,
+            newStartDate: task.start_date,
+            newEndDate: task.end_date
+        });
+
+        try {
+            // 新しい開始日時と終了日時を取得
+            const newStartDate = new Date(task.start_date);
+            const newEndDate = new Date(task.end_date);
+            
+            // 元のタスクデータを更新
+            const updateData = {};
+            
+            // 作成日時の更新（開始日時として扱う）
+            if (originalTask.createdAt) {
+                const originalStart = new Date(originalTask.createdAt);
+                if (originalStart.getTime() !== newStartDate.getTime()) {
+                    updateData.createdAt = newStartDate.toISOString();
+                }
+            }
+            
+            // 期限の更新
+            if (originalTask.dueDate) {
+                const originalDue = new Date(originalTask.dueDate);
+                if (originalDue.getTime() !== newEndDate.getTime()) {
+                    updateData.dueDate = newEndDate.toISOString();
+                }
+            } else {
+                // 期限が設定されていない場合は新しく設定
+                updateData.dueDate = newEndDate.toISOString();
+            }
+
+            // 更新するデータがある場合のみサーバーに送信
+            if (Object.keys(updateData).length > 0) {
+                console.log('Updating task with data:', updateData);
+                console.log('Original task:', originalTask);
+                console.log('Task ID:', taskId);
+                
+                // 安全な更新データのみを送信（不要なフィールドを除外）
+                const safeUpdateData = {};
+                if (updateData.createdAt) safeUpdateData.createdAt = updateData.createdAt;
+                if (updateData.dueDate) safeUpdateData.dueDate = updateData.dueDate;
+                
+                console.log('Safe update data to send:', safeUpdateData);
+                
+                const response = await this.taskManager.updateTask(taskId, safeUpdateData);
+                
+                console.log('Task update successful:', response);
+                if (response.success) {
+                    this.notificationManager.show('タスクの日時を更新しました', 'success');
+                    
+                    // TaskManagerのタスクデータを更新
+                    const taskIndex = this.taskManager.tasks.findIndex(t => (t._id === taskId || t.id === taskId));
+                    if (taskIndex !== -1) {
+                        if (updateData.createdAt) {
+                            this.taskManager.tasks[taskIndex].createdAt = updateData.createdAt;
+                        }
+                        if (updateData.dueDate) {
+                            this.taskManager.tasks[taskIndex].dueDate = updateData.dueDate;
+                        }
+                    }
+                    
+                    // ガントチャートのデータを更新
+                    this.updateGanttData();
+                    
+                    // UIの他の部分も更新
+                    if (this.taskManager.uiManager) {
+                        this.taskManager.uiManager.updateViews();
+                    }
+                    
+                    // 明示的に再描画を遅延実行
+                    setTimeout(() => {
+                        if (gantt && gantt.render) {
+                            gantt.render();
+                        }
+                    }, 100);
+                } else {
+                    this.notificationManager.show('タスクの更新に失敗しました', 'error');
+                    this.updateGanttData(); // 元のデータに戻す
+                }
+            }
+        } catch (error) {
+            console.error('Task update failed:', error);
+            this.notificationManager.show('タスクの更新に失敗しました', 'error');
+            // 元のデータに戻す
+            this.updateGanttData();
+        } finally {
+            this.isUpdating = false;
+            
+            // 保留中の更新があれば処理
+            if (this.pendingUpdates.size > 0) {
+                const [pendingTaskId, pendingUpdate] = this.pendingUpdates.entries().next().value;
+                this.pendingUpdates.delete(pendingTaskId);
+                
+                // 少し遅延させて次の更新を実行
+                setTimeout(() => {
+                    this.handleTaskDateChange(pendingTaskId, pendingUpdate.task, pendingUpdate.changeType);
+                }, 100);
+            }
         }
     }
 
@@ -307,6 +620,8 @@ class GanttManager {
 
     refreshGantt() {
         if (this.isInitialized) {
+            // データを更新してから再描画
+            this.updateGanttData();
             gantt.render();
         }
     }
@@ -315,6 +630,92 @@ class GanttManager {
         if (this.isInitialized) {
             gantt.clearAll();
             this.isInitialized = false;
+        }
+    }
+
+    // リアルタイム更新を受信した際の処理
+    onTaskUpdated(updatedTask) {
+        console.log('Real-time task update received:', updatedTask);
+        
+        // 現在更新中でない場合のみ処理
+        if (!this.isUpdating) {
+            // TaskManagerのタスクデータを更新
+            const taskIndex = this.taskManager.tasks.findIndex(t => 
+                (t._id === updatedTask._id || t.id === updatedTask.id) ||
+                (t._id === updatedTask.id || t.id === updatedTask._id)
+            );
+            
+            if (taskIndex !== -1) {
+                this.taskManager.tasks[taskIndex] = { ...this.taskManager.tasks[taskIndex], ...updatedTask };
+                console.log('Task updated in TaskManager:', this.taskManager.tasks[taskIndex]);
+            }
+            
+            // ガントチャートを更新
+            this.updateGanttData();
+            
+            // 明示的に再描画
+            setTimeout(() => {
+                if (gantt && gantt.render) {
+                    gantt.render();
+                }
+            }, 100);
+        } else {
+            console.log('Currently updating, skipping real-time update');
+        }
+    }
+
+    // タスクが削除された際の処理
+    onTaskDeleted(deletedTaskId) {
+        console.log('Real-time task deletion received:', deletedTaskId);
+        
+        if (!this.isUpdating) {
+            // TaskManagerのタスクデータから削除
+            const taskIndex = this.taskManager.tasks.findIndex(t => 
+                t._id === deletedTaskId || t.id === deletedTaskId
+            );
+            
+            if (taskIndex !== -1) {
+                this.taskManager.tasks.splice(taskIndex, 1);
+                console.log('Task deleted from TaskManager');
+            }
+            
+            // ガントチャートを更新
+            this.updateGanttData();
+            
+            // 明示的に再描画
+            setTimeout(() => {
+                if (gantt && gantt.render) {
+                    gantt.render();
+                }
+            }, 100);
+        }
+    }
+
+    // 新しいタスクが追加された際の処理
+    onTaskAdded(newTask) {
+        console.log('Real-time task addition received:', newTask);
+        
+        if (!this.isUpdating) {
+            // TaskManagerのタスクデータに追加
+            const existingIndex = this.taskManager.tasks.findIndex(t => 
+                (t._id === newTask._id || t.id === newTask.id) ||
+                (t._id === newTask.id || t.id === newTask._id)
+            );
+            
+            if (existingIndex === -1) {
+                this.taskManager.tasks.push(newTask);
+                console.log('Task added to TaskManager:', newTask);
+            }
+            
+            // ガントチャートを更新
+            this.updateGanttData();
+            
+            // 明示的に再描画
+            setTimeout(() => {
+                if (gantt && gantt.render) {
+                    gantt.render();
+                }
+            }, 100);
         }
     }
 }

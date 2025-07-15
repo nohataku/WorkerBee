@@ -8,6 +8,10 @@ class TaskManager {
         this.allUsers = [];
         this.uiManager = null; // UIManagerの参照を保持
         this.authManager = null; // AuthManagerの参照を保持
+        this.ganttManager = null; // GanttManagerの参照を保持
+        
+        // リアルタイム更新のイベントリスナーを設定
+        this.setupRealtimeListeners();
     }
 
     setUIManager(uiManager) {
@@ -16,6 +20,10 @@ class TaskManager {
 
     setAuthManager(authManager) {
         this.authManager = authManager;
+    }
+
+    setGanttManager(ganttManager) {
+        this.ganttManager = ganttManager;
     }
 
     getTasks() {
@@ -37,6 +45,8 @@ class TaskManager {
             const statusFilter = document.getElementById('statusFilter')?.value || 'all';
             const priorityFilter = document.getElementById('priorityFilter')?.value || '';
             
+            console.log('Filters applied:', { statusFilter, priorityFilter });
+            
             const params = new URLSearchParams({
                 status: statusFilter,
                 limit: 50
@@ -56,18 +66,21 @@ class TaskManager {
                 // レスポンスに直接tasksプロパティがある場合
                 this.tasks = response.tasks || [];
                 console.log('Tasks loaded from response.tasks:', this.tasks.length);
+                console.log('First few tasks:', this.tasks.slice(0, 3));
                 this.updateViews();
                 return this.tasks;
             } else if (Array.isArray(response)) {
                 // レスポンスが直接配列の場合（GAS環境の可能性）
                 this.tasks = response;
                 console.log('Tasks loaded from array response:', this.tasks.length);
+                console.log('First few tasks:', this.tasks.slice(0, 3));
                 this.updateViews();
                 return this.tasks;
             } else if (response && response.success && response.data) {
                 // Node.js環境ではsuccess/data形式
                 this.tasks = response.data.tasks || [];
                 console.log('Tasks loaded from response.data.tasks:', this.tasks.length);
+                console.log('First few tasks:', this.tasks.slice(0, 3));
                 this.updateViews();
                 return this.tasks;
             } else {
@@ -230,6 +243,9 @@ class TaskManager {
         try {
             let response;
             let action;
+            
+            // 開始日と期限日の検証
+            this.validateTaskDates(taskData);
             
             if (this.currentEditingTask) {
                 const taskId = this.currentEditingTask._id || this.currentEditingTask.id;
@@ -461,5 +477,285 @@ class TaskManager {
         if (this.uiManager) {
             this.uiManager.updateViews();
         }
+    }
+
+    async updateTask(taskId, updateData) {
+        try {
+            console.log('TaskManager.updateTask called with:', {
+                taskId: taskId,
+                updateData: updateData,
+                updateDataType: typeof updateData,
+                updateDataKeys: Object.keys(updateData)
+            });
+            
+            // 日付の検証
+            if (updateData.startDate || updateData.dueDate) {
+                try {
+                    this.validateTaskDates(updateData);
+                } catch (error) {
+                    this.notificationManager.show('error', '日付エラー', error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+            
+            // 依存関係の検証
+            if (updateData.dependencies) {
+                this.validateDependencies(taskId, updateData.dependencies);
+            }
+            
+            // ステータス変更の検証
+            if (updateData.status && !this.canUpdateTaskStatus(taskId, updateData.status)) {
+                return { success: false, error: 'ステータスの変更が依存関係により制限されています' };
+            }
+            
+            const response = await this.apiClient.call(`/api/tasks/${taskId}`, 'PUT', updateData);
+            
+            console.log('Update task response:', response);
+            
+            // GAS環境では、ApiClientがresult.dataを直接返すため、responseにはタスクオブジェクトが含まれる
+            if (response && (response.id || response._id)) {
+                console.log('Task update successful:', response);
+                
+                // ローカルのタスクリストを更新
+                const taskIndex = this.tasks.findIndex(t => (t._id === taskId || t.id === taskId));
+                if (taskIndex !== -1) {
+                    this.tasks[taskIndex] = { ...this.tasks[taskIndex], ...updateData };
+                }
+                
+                // Socket通知
+                if (this.socketManager) {
+                    this.socketManager.emit('task-updated', response);
+                }
+                
+                return { success: true, data: response };
+            } else if (response && response.success) {
+                // Node.js環境の場合（success/data形式）
+                console.log('Task update successful (Node.js):', response);
+                
+                // ローカルのタスクリストを更新
+                const taskIndex = this.tasks.findIndex(t => (t._id === taskId || t.id === taskId));
+                if (taskIndex !== -1) {
+                    this.tasks[taskIndex] = { ...this.tasks[taskIndex], ...updateData };
+                }
+                
+                // Socket通知
+                if (this.socketManager) {
+                    this.socketManager.emit('task-updated', response.data);
+                }
+                
+                return { success: true, data: response.data };
+            } else {
+                console.error('Task update failed:', response);
+                return { success: false, message: response?.message || 'タスクの更新に失敗しました' };
+            }
+        } catch (error) {
+            console.error('Update task error:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    editTask(task) {
+        console.log('Editing task:', task);
+        
+        // 編集中のタスクを設定
+        this.setCurrentEditingTask(task);
+        
+        // UIManagerを通じてタスクモーダルを開く
+        if (this.uiManager) {
+            this.uiManager.openTaskModal('edit', task);
+        } else {
+            console.warn('UIManager not available for task editing');
+        }
+    }
+
+    setupRealtimeListeners() {
+        if (!this.socketManager) return;
+
+        // リアルタイムタスク更新を受信
+        this.socketManager.on('task-updated', (taskData) => {
+            console.log('Received task update:', taskData);
+            this.handleRealtimeTaskUpdate(taskData);
+        });
+
+        // リアルタイムタスク削除を受信
+        this.socketManager.on('task-deleted', (taskId) => {
+            console.log('Received task deletion:', taskId);
+            this.handleRealtimeTaskDelete(taskId);
+        });
+
+        // リアルタイムタスク追加を受信
+        this.socketManager.on('task-added', (taskData) => {
+            console.log('Received task addition:', taskData);
+            this.handleRealtimeTaskAdd(taskData);
+        });
+    }
+
+    handleRealtimeTaskUpdate(taskData) {
+        // ローカルタスクリストを更新
+        const taskIndex = this.tasks.findIndex(t => t._id === taskData._id);
+        if (taskIndex !== -1) {
+            this.tasks[taskIndex] = taskData;
+        }
+
+        // GanttManagerに通知
+        if (this.ganttManager) {
+            this.ganttManager.onTaskUpdated(taskData);
+        }
+
+        // UIManagerに通知
+        if (this.uiManager) {
+            this.uiManager.onTaskUpdated(taskData);
+        }
+    }
+
+    handleRealtimeTaskDelete(taskId) {
+        // ローカルタスクリストから削除
+        this.tasks = this.tasks.filter(t => t._id !== taskId);
+
+        // GanttManagerに通知
+        if (this.ganttManager) {
+            this.ganttManager.onTaskDeleted(taskId);
+        }
+
+        // UIManagerに通知
+        if (this.uiManager) {
+            this.uiManager.onTaskDeleted(taskId);
+        }
+    }
+
+    handleRealtimeTaskAdd(taskData) {
+        // ローカルタスクリストに追加（重複チェック）
+        const existingTask = this.tasks.find(t => t._id === taskData._id);
+        if (!existingTask) {
+            this.tasks.push(taskData);
+        }
+
+        // GanttManagerに通知
+        if (this.ganttManager) {
+            this.ganttManager.onTaskAdded(taskData);
+        }
+
+        // UIManagerに通知
+        if (this.uiManager) {
+            this.uiManager.onTaskAdded(taskData);
+        }
+    }
+
+    // 依存関係の管理
+    getDependentTasks(taskId) {
+        return this.tasks.filter(task => 
+            task.dependencies && task.dependencies.includes(taskId)
+        );
+    }
+
+    getDependencyTasks(taskId) {
+        const task = this.tasks.find(t => t.id === taskId);
+        if (!task || !task.dependencies) return [];
+        
+        return task.dependencies.map(depId => 
+            this.tasks.find(t => t.id === depId)
+        ).filter(t => t !== undefined);
+    }
+
+    canUpdateTaskStatus(taskId, newStatus) {
+        const task = this.tasks.find(t => t.id === taskId);
+        if (!task) return false;
+        
+        // 依存関係のチェック
+        if (newStatus === 'in-progress' || newStatus === 'completed') {
+            const dependencies = this.getDependencyTasks(taskId);
+            const incompleteDependencies = dependencies.filter(dep => 
+                dep.status !== 'completed'
+            );
+            
+            if (incompleteDependencies.length > 0) {
+                const depTitles = incompleteDependencies.map(dep => dep.title).join(', ');
+                this.notificationManager.show('warning', '依存関係エラー', 
+                    `このタスクを${newStatus === 'in-progress' ? '進行中' : '完了'}にする前に、以下の依存タスクを完了してください: ${depTitles}`);
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    validateDependencies(taskId, dependencies) {
+        // 自分自身を依存関係に設定することを防ぐ
+        if (dependencies.includes(taskId)) {
+            throw new Error('タスクは自分自身に依存することはできません。');
+        }
+        
+        // 存在しないタスクIDをチェック
+        const invalidDeps = dependencies.filter(depId => 
+            !this.tasks.find(t => t.id === depId)
+        );
+        
+        if (invalidDeps.length > 0) {
+            throw new Error(`存在しないタスクが依存関係に含まれています: ${invalidDeps.join(', ')}`);
+        }
+        
+        // 循環依存をチェック
+        if (this.hasCircularDependency(taskId, dependencies)) {
+            throw new Error('循環依存が検出されました。');
+        }
+        
+        return true;
+    }
+
+    hasCircularDependency(fromTaskId, toDependencies, visited = new Set()) {
+        for (const depId of toDependencies) {
+            if (visited.has(depId)) {
+                return true;
+            }
+            
+            visited.add(depId);
+            
+            const depTask = this.tasks.find(t => t.id === depId);
+            if (depTask && depTask.dependencies) {
+                if (depTask.dependencies.includes(fromTaskId)) {
+                    return true;
+                }
+                
+                if (this.hasCircularDependency(fromTaskId, depTask.dependencies, new Set(visited))) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+
+    // 開始日と期限日の検証
+    validateTaskDates(taskData) {
+        const startDate = taskData.startDate ? new Date(taskData.startDate) : null;
+        const dueDate = taskData.dueDate ? new Date(taskData.dueDate) : null;
+        
+        if (startDate && dueDate && startDate > dueDate) {
+            throw new Error('開始日は期限日より前に設定してください');
+        }
+        
+        return true;
+    }
+
+    // 依存関係に基づくタスクの開始可能日を計算
+    calculateEarliestStartDate(taskId) {
+        const task = this.tasks.find(t => t.id === taskId);
+        if (!task || !task.dependencies || task.dependencies.length === 0) {
+            return null;
+        }
+        
+        let latestDependencyDate = null;
+        
+        for (const depId of task.dependencies) {
+            const depTask = this.tasks.find(t => t.id === depId);
+            if (depTask) {
+                const depDueDate = depTask.dueDate ? new Date(depTask.dueDate) : null;
+                if (depDueDate && (!latestDependencyDate || depDueDate > latestDependencyDate)) {
+                    latestDependencyDate = depDueDate;
+                }
+            }
+        }
+        
+        return latestDependencyDate;
     }
 }

@@ -83,7 +83,7 @@ function initializeSheets() {
   
   // Tasksシートの初期化
   if (tasksSheet && tasksSheet.getLastRow() === 0) {
-    tasksSheet.getRange(1, 1, 1, 9).setValues([['id', 'title', 'description', 'priority', 'dueDate', 'assignedTo', 'status', 'createdAt', 'updatedAt']]);
+    tasksSheet.getRange(1, 1, 1, 11).setValues([['id', 'title', 'description', 'priority', 'startDate', 'dueDate', 'assignedTo', 'status', 'dependencies', 'createdAt', 'updatedAt']]);
   }
 }
 
@@ -261,6 +261,9 @@ function handleGetTasks(payload = {}) {
   try {
     let tasks = sheetToObjects(tasksSheet);
     
+    // 依存関係の情報を含むタスクデータを取得
+    tasks = getTasksWithDependencyInfo(tasks);
+    
     // フィルタリング処理
     if (payload.status && payload.status !== 'all') {
       tasks = tasks.filter(task => task.status === payload.status);
@@ -310,14 +313,27 @@ function handleCreateTask(payload) {
     title: payload.title,
     description: payload.description || '',
     priority: payload.priority || 'medium',
+    startDate: payload.startDate || '',
     dueDate: payload.dueDate || '',
     assignedTo: payload.assignedTo || '',
     status: 'pending',
+    dependencies: JSON.stringify(payload.dependencies || []),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
+  
+  // 依存関係の検証
+  if (payload.dependencies && payload.dependencies.length > 0) {
+    validateDependencies(payload.dependencies);
+  }
+  
   tasksSheet.appendRow(objectToSheetRow(tasksSheet, newTask));
-  return newTask;
+  
+  // 依存関係を持つタスクのレスポンス用にJSONをパース
+  const responseTask = { ...newTask };
+  responseTask.dependencies = JSON.parse(responseTask.dependencies || '[]');
+  
+  return responseTask;
 }
 
 function handleUpdateTask(payload) {
@@ -330,17 +346,70 @@ function handleUpdateTask(payload) {
   const taskData = tasksSheet.getRange(row, 1, 1, tasksSheet.getLastColumn());
   const taskValues = taskData.getValues()[0];
   
+  // updatedAtを追加
   updates.updatedAt = new Date().toISOString();
 
+  console.log('Update Task Debug:', {
+    id: id,
+    updates: updates,
+    headers: headers,
+    originalValues: taskValues
+  });
+
+  // 特定のフィールドのみを更新対象として許可
+  const allowedFields = ['title', 'description', 'priority', 'startDate', 'dueDate', 'assignedTo', 'status', 'dependencies', 'createdAt', 'updatedAt'];
+  const safeUpdates = {};
+  
+  // 許可されたフィールドのみを処理
+  Object.keys(updates).forEach(key => {
+    if (allowedFields.includes(key)) {
+      if (key === 'dependencies') {
+        // 依存関係の場合はJSON文字列として保存
+        safeUpdates[key] = JSON.stringify(updates[key] || []);
+      } else {
+        safeUpdates[key] = updates[key];
+      }
+    } else {
+      console.log(`Ignoring unknown field: ${key}`);
+    }
+  });
+
+  // 依存関係の検証
+  if (updates.dependencies && updates.dependencies.length > 0) {
+    validateDependencies(updates.dependencies, id);
+  }
+
+  console.log('Safe updates:', safeUpdates);
+
   const newValues = headers.map((header, i) => {
-    return updates.hasOwnProperty(header) ? updates[header] : taskValues[i];
+    if (safeUpdates.hasOwnProperty(header)) {
+      console.log(`Updating field ${header} from ${taskValues[i]} to ${safeUpdates[header]}`);
+      return safeUpdates[header];
+    }
+    return taskValues[i];
+  });
+
+  console.log('Headers:', headers);
+  console.log('New values to write:', newValues);
+  
+  // 各フィールドの対応を確認
+  headers.forEach((header, i) => {
+    console.log(`Column ${i}: ${header} = ${newValues[i]}`);
   });
 
   taskData.setValues([newValues]);
   
   const updatedTask = {};
-  headers.forEach((h, i) => updatedTask[h] = newValues[i]);
+  headers.forEach((h, i) => {
+    if (h === 'dependencies') {
+      // 依存関係の場合はJSONとしてパース
+      updatedTask[h] = JSON.parse(newValues[i] || '[]');
+    } else {
+      updatedTask[h] = newValues[i];
+    }
+  });
 
+  console.log('Updated task result:', updatedTask);
   return updatedTask;
 }
 
@@ -350,4 +419,80 @@ function handleDeleteTask({ id }) {
   if (row === -1) throw new Error('Task not found.');
   tasksSheet.deleteRow(row);
   return { id };
+}
+
+// 依存関係の検証
+function validateDependencies(dependencies, excludeTaskId = null) {
+  if (!dependencies || dependencies.length === 0) {
+    return;
+  }
+  
+  const allTasks = sheetToObjects(tasksSheet);
+  
+  for (const depId of dependencies) {
+    // 自分自身を依存関係に設定することを防ぐ
+    if (depId === excludeTaskId) {
+      throw new Error('タスクは自分自身に依存することはできません。');
+    }
+    
+    // 依存するタスクが存在するかチェック
+    const dependencyTask = allTasks.find(task => task.id === depId);
+    if (!dependencyTask) {
+      throw new Error(`依存するタスク (ID: ${depId}) が見つかりません。`);
+    }
+    
+    // 循環依存をチェック
+    if (hasCircularDependency(allTasks, excludeTaskId, depId)) {
+      throw new Error('循環依存が検出されました。');
+    }
+  }
+}
+
+// 循環依存のチェック
+function hasCircularDependency(allTasks, fromTaskId, toTaskId, visited = new Set()) {
+  if (visited.has(toTaskId)) {
+    return true;
+  }
+  
+  visited.add(toTaskId);
+  
+  const toTask = allTasks.find(task => task.id === toTaskId);
+  if (!toTask) {
+    return false;
+  }
+  
+  const toDependencies = JSON.parse(toTask.dependencies || '[]');
+  
+  for (const depId of toDependencies) {
+    if (depId === fromTaskId) {
+      return true;
+    }
+    
+    if (hasCircularDependency(allTasks, fromTaskId, depId, new Set(visited))) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+// 依存関係の情報を含むタスクの詳細を取得
+function getTasksWithDependencyInfo(tasks) {
+  return tasks.map(task => {
+    const dependencies = JSON.parse(task.dependencies || '[]');
+    const dependencyTasks = dependencies.map(depId => {
+      const depTask = tasks.find(t => t.id === depId);
+      return depTask ? {
+        id: depTask.id,
+        title: depTask.title,
+        status: depTask.status
+      } : null;
+    }).filter(dep => dep !== null);
+    
+    return {
+      ...task,
+      dependencies: dependencies,
+      dependencyTasks: dependencyTasks
+    };
+  });
 }
