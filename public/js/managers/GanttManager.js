@@ -36,17 +36,30 @@ class GanttManager {
         }
         
         console.log('Configuring Gantt chart...');
+        
+        // モバイル対応の設定
+        const isMobile = window.innerWidth <= 768;
+        
         // ガントチャートの設定
         gantt.config.date_format = "%Y-%m-%d %H:%i:%s";
         gantt.config.autosize = "y";
         gantt.config.fit_tasks = true;
-        gantt.config.grid_width = 350;
         
-        // 新しいスケール設定形式を使用
-        gantt.config.scales = [
-            {unit: "week", step: 1, format: "%M %d"},
-            {unit: "day", step: 1, format: "%d"}
-        ];
+        // モバイル対応のグリッド幅設定
+        gantt.config.grid_width = isMobile ? 200 : 350;
+        gantt.config.min_column_width = isMobile ? 50 : 70;
+        
+        // スケール設定をモバイルに最適化
+        if (isMobile) {
+            gantt.config.scales = [
+                {unit: "day", step: 1, format: "%m/%d"}
+            ];
+        } else {
+            gantt.config.scales = [
+                {unit: "week", step: 1, format: "%M %d"},
+                {unit: "day", step: 1, format: "%d"}
+            ];
+        }
         
         // ドラッグ&ドロップとリサイズを有効化
         gantt.config.drag_move = true;
@@ -58,12 +71,24 @@ class GanttManager {
         gantt.config.auto_scheduling = false;
         gantt.config.auto_scheduling_strict = false;
         
-        // 列の設定
-        gantt.config.columns = [
-            { name: "text", label: "タスク名", width: 200, tree: true },
-            { name: "assignee", label: "担当者", width: 80 },
-            { name: "priority", label: "優先度", width: 70 }
-        ];
+        // モバイル対応のスクロール設定
+        gantt.config.scroll_on_load = true;
+        gantt.config.preserve_scroll = true;
+        
+        // 列の設定をモバイルに最適化
+        if (isMobile) {
+            gantt.config.columns = [
+                { name: "text", label: "タスク", width: 120, tree: true },
+                { name: "assignee", label: "担当", width: 60 },
+                { name: "priority", label: "優先", width: 50 }
+            ];
+        } else {
+            gantt.config.columns = [
+                { name: "text", label: "タスク名", width: 200, tree: true },
+                { name: "assignee", label: "担当者", width: 80 },
+                { name: "priority", label: "優先度", width: 70 }
+            ];
+        }
 
         // 日本語化
         gantt.locale = {
@@ -146,6 +171,17 @@ class GanttManager {
         // ガントチャートを初期化
         console.log('Initializing Gantt chart...');
         gantt.init("gantt_here");
+        
+        // モバイル対応のために初期化後にサイズを調整
+        setTimeout(() => {
+            gantt.setSizes();
+            if (isMobile) {
+                // モバイルでは今日にスクロール
+                const today = new Date();
+                gantt.showDate(today);
+            }
+        }, 100);
+        
         console.log('Gantt chart initialized successfully');
     }
 
@@ -168,6 +204,99 @@ class GanttManager {
         document.getElementById('addTaskFromGantt').addEventListener('click', () => {
             this.addNewTask();
         });
+
+        // 画面リサイズ時のガントチャート調整
+        window.addEventListener('resize', () => {
+            this.handleResize();
+        });
+
+        // モバイル用のタッチイベントを設定
+        this.setupMobileGanttEvents();
+    }
+
+    // モバイル向けのタッチイベントを設定
+    setupMobileGanttEvents() {
+        if (!this.isInitialized) return;
+
+        const ganttContainer = document.querySelector('.gantt-container');
+        if (!ganttContainer) return;
+
+        let isScrolling = false;
+        let startX = 0;
+        let scrollLeft = 0;
+
+        // タッチスクロールの改善
+        ganttContainer.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                isScrolling = true;
+                startX = e.touches[0].pageX - ganttContainer.offsetLeft;
+                scrollLeft = ganttContainer.scrollLeft;
+            }
+        }, { passive: true });
+
+        ganttContainer.addEventListener('touchmove', (e) => {
+            if (!isScrolling || e.touches.length !== 1) return;
+            
+            const x = e.touches[0].pageX - ganttContainer.offsetLeft;
+            const walk = (x - startX) * 2; // スクロール速度を調整
+            ganttContainer.scrollLeft = scrollLeft - walk;
+        }, { passive: true });
+
+        ganttContainer.addEventListener('touchend', () => {
+            isScrolling = false;
+        }, { passive: true });
+
+        // ピンチズームの無効化（ガントチャートのズーム機能と競合を避けるため）
+        ganttContainer.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        });
+
+        console.log('Mobile gantt events set up');
+    }
+
+    handleResize() {
+        if (!this.isInitialized || !gantt) return;
+
+        const isMobile = window.innerWidth <= 768;
+        
+        // モバイル対応のグリッド幅再設定
+        gantt.config.grid_width = isMobile ? 200 : 350;
+        gantt.config.min_column_width = isMobile ? 50 : 70;
+        
+        // 列の設定を更新
+        if (isMobile) {
+            gantt.config.columns = [
+                { name: "text", label: "タスク", width: 120, tree: true },
+                { name: "assignee", label: "担当", width: 60 },
+                { name: "priority", label: "優先", width: 50 }
+            ];
+        } else {
+            gantt.config.columns = [
+                { name: "text", label: "タスク名", width: 200, tree: true },
+                { name: "assignee", label: "担当者", width: 80 },
+                { name: "priority", label: "優先度", width: 70 }
+            ];
+        }
+
+        // スケール設定を更新
+        if (isMobile) {
+            gantt.config.scales = [
+                {unit: "day", step: 1, format: "%m/%d"}
+            ];
+        } else {
+            gantt.config.scales = [
+                {unit: "week", step: 1, format: "%M %d"},
+                {unit: "day", step: 1, format: "%d"}
+            ];
+        }
+
+        // ガントチャートを再描画
+        setTimeout(() => {
+            gantt.setSizes();
+            gantt.render();
+        }, 100);
     }
 
     loadTasks(tasks) {
@@ -622,7 +751,12 @@ class GanttManager {
         if (this.isInitialized) {
             // データを更新してから再描画
             this.updateGanttData();
-            gantt.render();
+            
+            // モバイル対応のためにサイズを再調整
+            setTimeout(() => {
+                gantt.setSizes();
+                gantt.render();
+            }, 100);
         }
     }
 

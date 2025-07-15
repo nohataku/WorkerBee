@@ -316,10 +316,10 @@
                     <div class="view-actions">
                         <div class="gantt-controls">
                             <button class="btn btn-secondary" id="ganttZoomIn">
-                                <i class="fas fa-search-plus"></i> ズームイン
+                                <i class="fas fa-search-plus"></i> <span class="btn-text">ズームイン</span>
                             </button>
                             <button class="btn btn-secondary" id="ganttZoomOut">
-                                <i class="fas fa-search-minus"></i> ズームアウト
+                                <i class="fas fa-search-minus"></i> <span class="btn-text">ズームアウト</span>
                             </button>
                             <select id="ganttScale" class="btn btn-secondary">
                                 <option value="day">日</option>
@@ -328,11 +328,15 @@
                             </select>
                         </div>
                         <button class="btn btn-primary" id="addTaskFromGantt">
-                            <i class="fas fa-plus"></i> 新しいタスク
+                            <i class="fas fa-plus"></i> <span class="btn-text">新しいタスク</span>
                         </button>
                     </div>
                 </div>
                 <div class="gantt-container">
+                    <div class="gantt-mobile-hint">
+                        <i class="fas fa-info-circle"></i>
+                        <span>横スクロールでガントチャートを表示できます</span>
+                    </div>
                     <div id="gantt_here"></div>
                 </div>
             </div>

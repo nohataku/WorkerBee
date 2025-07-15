@@ -1082,59 +1082,104 @@ body::before {
     }
 }
 
-@media (max-width: 480px) {
-    .stats-grid {
-        grid-template-columns: 1fr;
+/* DHX Ganttのモバイル対応カスタマイズ */
+@media (max-width: 768px) {
+    /* ガントチャートのタスクバーを見やすくする */
+    .gantt_task_line {
+        border-radius: 4px !important;
+        height: 16px !important;
+        line-height: 16px !important;
+        font-size: 11px !important;
     }
     
-    .task-meta {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
+    /* ガントチャートのヘッダーをモバイル対応 */
+    .gantt_grid_head_cell {
+        font-size: 12px !important;
+        padding: 4px 2px !important;
     }
     
-    .auth-card {
-        padding: 30px 20px;
+    /* ガントチャートのセルをモバイル対応 */
+    .gantt_cell {
+        font-size: 12px !important;
+        padding: 4px 2px !important;
     }
     
-    .modal-content {
-        padding: 20px;
-        width: 95%;
+    /* ガントチャートのタイムラインヘッダー */
+    .gantt_scale_cell {
+        font-size: 11px !important;
+        padding: 2px 1px !important;
+    }
+    
+    /* ガントチャートのタスクテキスト */
+    .gantt_task_text {
+        font-size: 11px !important;
+        padding: 2px 4px !important;
+    }
+    
+    /* ガントチャートのツールチップ */
+    .gantt_tooltip {
+        font-size: 12px !important;
+        max-width: 200px !important;
+        white-space: normal !important;
+    }
+    
+    /* ガントチャートのスクロール調整 */
+    .gantt_layout_content {
+        overflow-x: auto !important;
+    }
+    
+    .gantt_data_area {
+        min-width: 600px !important;
+    }
+    
+    /* ガントチャートのリサイズハンドル */
+    .gantt_grid_resize_wrap {
+        display: none !important;
+    }
+    
+    /* ガントチャートのタスクの優先度表示 */
+    .gantt_task_line.priority-high {
+        background: linear-gradient(to right, var(--error-red), #ff6b6b) !important;
+        border-left: 3px solid var(--error-red) !important;
+    }
+    
+    .gantt_task_line.priority-medium {
+        background: linear-gradient(to right, var(--warning-orange), #ffd93d) !important;
+        border-left: 3px solid var(--warning-orange) !important;
+    }
+    
+    .gantt_task_line.priority-low {
+        background: linear-gradient(to right, var(--success-green), #95de64) !important;
+        border-left: 3px solid var(--success-green) !important;
+    }
+    
+    .gantt_task_line.completed {
+        opacity: 0.6 !important;
+        background: linear-gradient(to right, var(--medium-gray), #c0c0c0) !important;
     }
 }
 
-/* カレンダー・ガントチャート */
-.calendar-container,
-.gantt-container {
-    background: var(--white);
-    border-radius: 15px;
-    padding: 20px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-    border: 1px solid var(--honey-gold);
-    min-height: 600px;
-}
-
-#calendar {
-    min-height: 550px;
-}
-
-#gantt_here {
-    min-height: 550px;
-}
-
-.calendar-controls,
-.gantt-controls {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-}
-
-.calendar-controls .btn,
-.gantt-controls .btn {
-    padding: 8px 16px;
-    font-size: 0.9rem;
-    min-width: 120px;
+/* デスクトップでのガントチャートスタイル */
+@media (min-width: 769px) {
+    .gantt_task_line.priority-high {
+        background: linear-gradient(to right, var(--error-red), #ff6b6b) !important;
+        border-left: 4px solid var(--error-red) !important;
+    }
+    
+    .gantt_task_line.priority-medium {
+        background: linear-gradient(to right, var(--warning-orange), #ffd93d) !important;
+        border-left: 4px solid var(--warning-orange) !important;
+    }
+    
+    .gantt_task_line.priority-low {
+        background: linear-gradient(to right, var(--success-green), #95de64) !important;
+        border-left: 4px solid var(--success-green) !important;
+    }
+    
+    .gantt_task_line.completed {
+        opacity: 0.6 !important;
+        background: linear-gradient(to right, var(--medium-gray), #c0c0c0) !important;
+    }
 }
 
 /* 通知 */
@@ -1306,4 +1351,78 @@ body::before {
 .mobile-overlay.active {
     opacity: 1;
     visibility: visible;
+}
+
+/* モバイル向けのガントチャート追加スタイル */
+@media (max-width: 768px) {
+    .view-header {
+        position: sticky;
+        top: 0;
+        background: var(--light-cream);
+        z-index: 10;
+        padding: 15px 0;
+        margin-bottom: 10px;
+        border-bottom: 1px solid var(--honey-gold);
+    }
+    
+    .view-header h2 {
+        font-size: 1.3rem;
+        margin-bottom: 10px;
+    }
+    
+    .view-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .view-actions .btn-primary {
+        order: -1; /* 新しいタスクボタンを上に */
+    }
+    
+    /* ガントチャートのコンテナを画面いっぱいに */
+    .gantt-container {
+        margin: 0 -20px;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+    }
+    
+    /* ガントチャートのヘッダー固定 */
+    .gantt_grid_head_cell,
+    .gantt_scale_cell {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 5 !important;
+        background: var(--white) !important;
+        border-bottom: 1px solid var(--honey-gold) !important;
+    }
+    
+    /* ガントチャートのタスクバーにタッチフィードバック */
+    .gantt_task_line {
+        transition: transform 0.1s ease !important;
+    }
+    
+    .gantt_task_line:active {
+        transform: scale(1.05) !important;
+    }
+    
+    /* ガントチャートのスクロールバー改善 */
+    .gantt_layout_content::-webkit-scrollbar {
+        height: 6px !important;
+    }
+    
+    .gantt_layout_content::-webkit-scrollbar-track {
+        background: var(--light-cream) !important;
+        border-radius: 3px !important;
+    }
+    
+    .gantt_layout_content::-webkit-scrollbar-thumb {
+        background: var(--honey-gold) !important;
+        border-radius: 3px !important;
+    }
+    
+    .gantt_layout_content::-webkit-scrollbar-thumb:hover {
+        background: var(--primary-yellow) !important;
+    }
 }
