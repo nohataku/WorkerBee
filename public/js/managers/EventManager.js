@@ -4,6 +4,8 @@ class EventManager {
         this.taskManager = taskManager;
         this.uiManager = uiManager;
         this.notificationManager = notificationManager;
+        this.calendarManager = null;
+        this.ganttManager = null;
     }
 
     bindEvents() {
@@ -269,6 +271,34 @@ class EventManager {
             await this.handleTaskLoad();
         } else if (viewName === 'dashboard') {
             await this.handleDashboardLoad();
+        } else if (viewName === 'calendar') {
+            await this.handleCalendarLoad();
+        } else if (viewName === 'gantt') {
+            await this.handleGanttLoad();
+        }
+    }
+
+    async handleCalendarLoad() {
+        try {
+            if (this.calendarManager) {
+                await this.taskManager.loadTasks();
+                this.calendarManager.loadTasks(this.taskManager.tasks);
+                this.calendarManager.refreshCalendar();
+            }
+        } catch (error) {
+            console.error('Error loading calendar:', error);
+        }
+    }
+
+    async handleGanttLoad() {
+        try {
+            if (this.ganttManager) {
+                await this.taskManager.loadTasks();
+                this.ganttManager.loadTasks(this.taskManager.tasks);
+                this.ganttManager.refreshGantt();
+            }
+        } catch (error) {
+            console.error('Error loading gantt:', error);
         }
     }
 
@@ -280,6 +310,14 @@ class EventManager {
                 this.taskManager.ensureUsersIncludeCurrentUser()
             ]);
             this.uiManager.renderTasks();
+            
+            // カレンダーとガントチャートにタスクデータを渡す
+            if (this.calendarManager) {
+                this.calendarManager.loadTasks(this.taskManager.tasks);
+            }
+            if (this.ganttManager) {
+                this.ganttManager.loadTasks(this.taskManager.tasks);
+            }
         } catch (error) {
             console.error('Error loading tasks:', error);
         }
@@ -438,6 +476,9 @@ class EventManager {
                 console.error('Failed to setup user info:', error);
             }
             
+            // カレンダーマネージャーとガントマネージャーの初期化
+            this.initializeCalendarAndGantt();
+            
             // タスクとステータスの読み込みを順次実行
             const initPromises = [
                 this.handleTaskLoad().catch(error => {
@@ -461,6 +502,24 @@ class EventManager {
             console.error('Error in initializeAppAfterAuth:', error);
             // 重要でないエラーの場合は通知を表示せずにログのみ
             console.warn('Some initialization steps failed, but continuing...');
+        }
+    }
+
+    initializeCalendarAndGantt() {
+        try {
+            console.log('Initializing Calendar and Gantt managers...');
+            
+            // CalendarManagerの初期化
+            this.calendarManager = new CalendarManager(this.taskManager, this.notificationManager);
+            this.calendarManager.init();
+            
+            // GanttManagerの初期化
+            this.ganttManager = new GanttManager(this.taskManager, this.notificationManager);
+            this.ganttManager.init();
+            
+            console.log('Calendar and Gantt managers initialized successfully');
+        } catch (error) {
+            console.error('Error initializing Calendar and Gantt managers:', error);
         }
     }
 }
