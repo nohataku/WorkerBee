@@ -1133,6 +1133,7 @@ body::before {
 }
 
 /* 通知 */
+.notifications,
 .notification-container {
     position: fixed;
     top: 20px;
@@ -1141,6 +1142,7 @@ body::before {
     max-width: 300px;
 }
 
+.notification,
 .notification-item {
     background: var(--white);
     border-radius: 10px;
@@ -1149,6 +1151,58 @@ body::before {
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
     border-left: 4px solid var(--primary-yellow);
     animation: slideInRight 0.3s ease;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    position: relative;
+}
+
+.notification-icon {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 16px;
+    color: var(--primary-yellow);
+}
+
+.notification-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-title {
+    font-weight: 600;
+    color: var(--charcoal);
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.notification-message {
+    color: var(--dark-brown);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.notification-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: var(--dark-brown);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    font-size: 12px;
+}
+
+.notification-close:hover {
+    background: var(--light-cream);
+    color: var(--charcoal);
 }
 
 @keyframes slideInRight {
@@ -1162,16 +1216,50 @@ body::before {
     }
 }
 
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+.notification.success,
 .notification-item.success {
     border-left-color: var(--success-green);
 }
 
+.notification.success .notification-icon {
+    color: var(--success-green);
+}
+
+.notification.error,
 .notification-item.error {
     border-left-color: var(--error-red);
 }
 
+.notification.error .notification-icon {
+    color: var(--error-red);
+}
+
+.notification.warning,
 .notification-item.warning {
     border-left-color: var(--warning-orange);
+}
+
+.notification.warning .notification-icon {
+    color: var(--warning-orange);
+}
+
+.notification.info {
+    border-left-color: var(--info-blue);
+}
+
+.notification.info .notification-icon {
+    color: var(--info-blue);
 }
 
 /* 追加のユーティリティクラス */

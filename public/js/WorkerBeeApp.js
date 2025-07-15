@@ -120,8 +120,17 @@ class WorkerBeeApp {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM Content Loaded - Starting WorkerBee App...');
     try {
-        new WorkerBeeApp();
+        window.app = new WorkerBeeApp();
         console.log('WorkerBee App instance created successfully');
+        
+        // デバッグ用のテスト関数をグローバルに追加
+        window.testNotification = () => {
+            if (window.app && window.app.notificationManager) {
+                window.app.notificationManager.test();
+            } else {
+                console.error('App or notificationManager not available');
+            }
+        };
     } catch (error) {
         console.error('Failed to create WorkerBee App instance:', error);
         // エラー表示用の基本的なHTML要素があれば使用
