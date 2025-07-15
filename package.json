@@ -13,7 +13,9 @@
     "deploy": "npm run build && echo 'Build completed for GitHub Pages'",
     "deploy:netlify": "npm run build:netlify && echo 'Build completed for Netlify'",
     "serve": "cd public && python -m http.server 8000",
-    "pages:local": "cd public && npx http-server -p 8080 -c-1"
+    "pages:local": "cd public && npx http-server -p 8080 -c-1",
+    "cache:clear": "echo 'CSSキャッシュクリア用：HTMLのバージョン番号を更新してください'",
+    "css:update": "node update-css-version.js"
   },
   "keywords": [
     "task",
