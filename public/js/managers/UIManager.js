@@ -6,8 +6,14 @@ class UIManager {
         this.currentView = 'dashboard';
         this.calendarManager = null;
         this.ganttManager = null;
+        this.eventManager = null; // EventManagerの参照を追加
         this.isMobileSidebarOpen = false;
         this.initializeMobileMenu();
+    }
+
+    // EventManagerの参照を設定するメソッド
+    setEventManager(eventManager) {
+        this.eventManager = eventManager;
     }
 
     initializeMobileMenu() {
@@ -166,44 +172,24 @@ class UIManager {
         // カレンダービューの初期化
         if (viewName === 'calendar') {
             console.log('Calendar view selected');
-            setTimeout(() => this.initCalendarView(), 100);
+            // EventManagerのhandleCalendarLoadを呼び出す
+            if (this.eventManager) {
+                this.eventManager.handleCalendarLoad().catch(error => {
+                    console.error('Error loading calendar:', error);
+                });
+            }
         }
         
         // ガントチャートビューの初期化
         if (viewName === 'gantt') {
             console.log('Gantt view selected');
-            setTimeout(() => this.initGanttView(), 100);
+            // EventManagerのhandleGanttLoadを呼び出す
+            if (this.eventManager) {
+                this.eventManager.handleGanttLoad().catch(error => {
+                    console.error('Error loading gantt:', error);
+                });
+            }
         }
-    }
-
-    initCalendarView() {
-        console.log('Initializing calendar view...');
-        if (!this.calendarManager) {
-            console.log('Creating new CalendarManager...');
-            this.calendarManager = new CalendarManager(this.taskManager, this.notificationManager);
-            this.calendarManager.init();
-        }
-        
-        // タスクデータを読み込み
-        const tasks = this.taskManager.getTasks();
-        console.log('Loading tasks to calendar:', tasks.length, 'tasks');
-        this.calendarManager.loadTasks(tasks);
-    }
-
-    initGanttView() {
-        console.log('Initializing gantt view...');
-        if (!this.ganttManager) {
-            console.log('Creating new GanttManager...');
-            this.ganttManager = new GanttManager(this.taskManager, this.notificationManager);
-            this.ganttManager.init();
-            
-            // TaskManagerにGanttManagerの参照を設定
-            this.taskManager.setGanttManager(this.ganttManager);
-        }
-        
-        // タスクデータを読み込み（フィルタを無視してすべてのタスクを取得）
-        console.log('Loading all tasks to gantt...');
-        this.ganttManager.loadAllTasks();
     }
 
     async renderTasks() {

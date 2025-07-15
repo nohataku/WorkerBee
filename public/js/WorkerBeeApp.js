@@ -47,6 +47,9 @@ class WorkerBeeApp {
             this.notificationManager
         );
         
+        // UIManagerにEventManagerの参照を設定
+        this.uiManager.setEventManager(this.eventManager);
+        
         // SocketManagerの初期化（ユーザー情報が必要になってから設定）
         this.socketManager = null;
     }

@@ -139,14 +139,17 @@ class CalendarManager {
     }
 
     loadTasks(tasks) {
+        console.log('CalendarManager.loadTasks: Received', tasks.length, 'tasks');
         this.tasks = tasks;
         this.updateCalendarEvents();
     }
 
     updateCalendarEvents() {
+        console.log('CalendarManager.updateCalendarEvents: Processing', this.tasks.length, 'tasks');
+        
         const events = this.tasks.map(task => {
             const event = {
-                id: task.id,
+                id: task._id || task.id,
                 title: task.title,
                 start: task.dueDate ? new Date(task.dueDate) : null,
                 allDay: !task.dueDate || !task.dueDate.includes('T'),
@@ -165,12 +168,15 @@ class CalendarManager {
 
             // 期限が設定されていない場合は表示しない
             if (!event.start) {
+                console.log('CalendarManager: Task without due date skipped:', task.title);
                 return null;
             }
 
+            console.log('CalendarManager: Event created:', event.title, 'at', event.start);
             return event;
         }).filter(Boolean);
 
+        console.log('CalendarManager: Total events to display:', events.length);
         this.calendar.removeAllEvents();
         this.calendar.addEventSource(events);
     }

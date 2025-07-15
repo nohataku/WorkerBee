@@ -1106,6 +1106,15 @@ body::before {
     padding: 20px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
     border: 1px solid var(--honey-gold);
+    min-height: 600px;
+}
+
+#calendar {
+    min-height: 550px;
+}
+
+#gantt_here {
+    min-height: 550px;
 }
 
 .calendar-controls,
