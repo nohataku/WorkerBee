@@ -61,7 +61,6 @@ class TaskUtils {
             const dueDateStr = dueDate ? TaskUtils.formatDate(dueDate) : '';
             
             // assignedToの安全な処理
-            let assigneeInitials = '';
             let assigneeName = '未割り当て';
 
             // デバッグ用ログ（本番環境でも一時的に有効）
@@ -78,11 +77,6 @@ class TaskUtils {
             if (task.assignedTo && task.assignedTo.displayName) {
                 console.log('Case 1: task.assignedTo has displayName');
                 assigneeName = task.assignedTo.displayName;
-                assigneeInitials = assigneeName
-                    .split(' ')
-                    .map(name => name[0])
-                    .join('')
-                    .toUpperCase();
             } 
             // task.assignedToがIDの場合、allUsersから該当ユーザーを検索
             else if (task.assignedTo && typeof task.assignedTo === 'string' && allUsers.length > 0) {
@@ -95,11 +89,6 @@ class TaskUtils {
                 console.log('Found user:', assignedUser);
                 if (assignedUser) {
                     assigneeName = assignedUser.displayName || assignedUser.username || assignedUser.email || '不明';
-                    assigneeInitials = assigneeName
-                        .split(' ')
-                        .map(name => name[0])
-                        .join('')
-                        .toUpperCase();
                 }
             }
             // task.assignedTo._idの場合、allUsersから該当ユーザーを検索
@@ -113,33 +102,18 @@ class TaskUtils {
                 console.log('Found user:', assignedUser);
                 if (assignedUser) {
                     assigneeName = assignedUser.displayName || assignedUser.username || assignedUser.email || '不明';
-                    assigneeInitials = assigneeName
-                        .split(' ')
-                        .map(name => name[0])
-                        .join('')
-                        .toUpperCase();
                 }
             }
             // assignedToNameが直接設定されている場合（後方互換性）
             else if (task.assignedToName && task.assignedToName !== '未割り当て') {
                 console.log('Case 4: using task.assignedToName');
                 assigneeName = task.assignedToName;
-                assigneeInitials = assigneeName
-                    .split(' ')
-                    .map(name => name[0])
-                    .join('')
-                    .toUpperCase();
             }
             // currentUserが担当者の場合
             else if (currentUser && task.assignedTo && 
                      (task.assignedTo === currentUser._id || task.assignedTo === currentUser.id)) {
                 console.log('Case 5: currentUser is assigned');
                 assigneeName = currentUser.displayName || currentUser.username || currentUser.email || '自分';
-                assigneeInitials = assigneeName
-                    .split(' ')
-                    .map(name => name[0])
-                    .join('')
-                    .toUpperCase();
             }
             // デフォルトケース
             else if (task.assignedTo && typeof task.assignedTo === 'string' && task.assignedTo !== 'unknown') {
@@ -147,10 +121,8 @@ class TaskUtils {
                 // IDらしき文字列でない場合は、そのまま表示名として使用
                 if (!task.assignedTo.match(/^[a-f\d]{24}$/i) && task.assignedTo.includes('@')) {
                     assigneeName = task.assignedTo; // メールアドレスの場合
-                    assigneeInitials = task.assignedTo.charAt(0).toUpperCase();
                 } else if (!task.assignedTo.match(/^[a-f\d]{24}$/i)) {
                     assigneeName = task.assignedTo; // その他の文字列
-                    assigneeInitials = task.assignedTo.charAt(0).toUpperCase();
                 }
             }
             else {
@@ -158,7 +130,6 @@ class TaskUtils {
             }
 
             console.log('Final assignee name:', assigneeName);
-            console.log('Final assignee initials:', assigneeInitials);
 
             // createdByの安全な処理と権限チェック
             const canEdit = true; // すべてのユーザーがタスクを編集可能にする
@@ -189,7 +160,6 @@ class TaskUtils {
                                 <i class="fas fa-calendar"></i> 期限: ${dueDateStr}
                             </span>` : ''}
                             <span class="task-assignee">
-                                <div class="task-assignee-avatar">${assigneeInitials || '?'}</div>
                                 ${assigneeName}
                             </span>
                         </div>
