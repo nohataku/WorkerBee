@@ -18,33 +18,74 @@ class UIManager {
 
     initializeMobileMenu() {
         // モバイルメニューのイベントリスナーを設定
-        document.addEventListener('DOMContentLoaded', () => {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                this.bindMobileMenuEvents();
+            });
+        } else {
+            // DOMが既に読み込まれている場合は直接実行
             this.bindMobileMenuEvents();
-        });
+        }
     }
 
     bindMobileMenuEvents() {
+        console.log('Binding mobile menu events...');
+        
+        // 既存のイベントリスナーを削除するため、関数を保存
+        if (this.mobileMenuClickHandler) {
+            const existingBtn = document.getElementById('mobileMenuBtn');
+            if (existingBtn) {
+                existingBtn.removeEventListener('click', this.mobileMenuClickHandler);
+            }
+        }
+        
         const mobileMenuBtn = document.getElementById('mobileMenuBtn');
         const closeSidebarBtn = document.getElementById('closeSidebarBtn');
         const mobileOverlay = document.getElementById('mobileOverlay');
         const sidebar = document.getElementById('sidebar');
 
+        console.log('Mobile menu elements:', {
+            mobileMenuBtn,
+            closeSidebarBtn,
+            mobileOverlay,
+            sidebar
+        });
+
         if (mobileMenuBtn) {
-            mobileMenuBtn.addEventListener('click', () => {
+            // クリックハンドラーを保存
+            this.mobileMenuClickHandler = (e) => {
+                console.log('Mobile menu button clicked!');
+                e.preventDefault();
+                e.stopPropagation();
                 this.toggleMobileSidebar();
-            });
+            };
+            
+            mobileMenuBtn.addEventListener('click', this.mobileMenuClickHandler);
+            console.log('Mobile menu button event listener added');
+        } else {
+            console.warn('Mobile menu button not found');
         }
 
         if (closeSidebarBtn) {
-            closeSidebarBtn.addEventListener('click', () => {
+            closeSidebarBtn.addEventListener('click', (e) => {
+                console.log('Close sidebar button clicked!');
+                e.preventDefault();
+                e.stopPropagation();
                 this.closeMobileSidebar();
             });
+        } else {
+            console.warn('Close sidebar button not found');
         }
 
         if (mobileOverlay) {
-            mobileOverlay.addEventListener('click', () => {
+            mobileOverlay.addEventListener('click', (e) => {
+                console.log('Mobile overlay clicked!');
+                e.preventDefault();
+                e.stopPropagation();
                 this.closeMobileSidebar();
             });
+        } else {
+            console.warn('Mobile overlay not found');
         }
 
         // ナビゲーションアイテムクリック時にモバイルサイドバーを閉じる
@@ -65,6 +106,10 @@ class UIManager {
     }
 
     toggleMobileSidebar() {
+        console.log('Toggle mobile sidebar called. Current state:', this.isMobileSidebarOpen);
+        console.log('Current window width:', window.innerWidth);
+        console.log('Is mobile screen:', window.innerWidth <= 768);
+        
         if (this.isMobileSidebarOpen) {
             this.closeMobileSidebar();
         } else {
@@ -73,30 +118,74 @@ class UIManager {
     }
 
     openMobileSidebar() {
+        console.log('Opening mobile sidebar...');
         const sidebar = document.getElementById('sidebar');
         const mobileOverlay = document.getElementById('mobileOverlay');
         
+        console.log('Sidebar elements:', { sidebar, mobileOverlay });
+        
         if (sidebar && mobileOverlay) {
-            sidebar.classList.add('active');
+            console.log('Before adding class - sidebar classes:', sidebar.className);
+            console.log('Before adding class - overlay classes:', mobileOverlay.className);
+            
+            // 確実にクラスを追加
+            sidebar.classList.add('open');
             mobileOverlay.classList.add('active');
             this.isMobileSidebarOpen = true;
             
+            console.log('After adding class - sidebar classes:', sidebar.className);
+            console.log('After adding class - overlay classes:', mobileOverlay.className);
+            
+            // スタイルを強制的に適用
+            setTimeout(() => {
+                // サイドバーのスタイルを確認
+                const sidebarStyles = window.getComputedStyle(sidebar);
+                console.log('Sidebar computed styles:', {
+                    position: sidebarStyles.position,
+                    left: sidebarStyles.left,
+                    top: sidebarStyles.top,
+                    width: sidebarStyles.width,
+                    height: sidebarStyles.height,
+                    transform: sidebarStyles.transform,
+                    zIndex: sidebarStyles.zIndex,
+                    display: sidebarStyles.display,
+                    visibility: sidebarStyles.visibility,
+                    backgroundColor: sidebarStyles.backgroundColor
+                });
+                
+                // 念のため、スタイルを直接適用
+                sidebar.style.transform = 'translateX(0)';
+                console.log('Forced sidebar transform to translateX(0)');
+            }, 50);
+            
+            console.log('Mobile sidebar opened successfully');
+            
             // スクロールを無効化
             document.body.style.overflow = 'hidden';
+        } else {
+            console.error('Sidebar or mobile overlay not found');
         }
     }
 
     closeMobileSidebar() {
+        console.log('Closing mobile sidebar...');
         const sidebar = document.getElementById('sidebar');
         const mobileOverlay = document.getElementById('mobileOverlay');
         
         if (sidebar && mobileOverlay) {
-            sidebar.classList.remove('active');
+            sidebar.classList.remove('open');
             mobileOverlay.classList.remove('active');
             this.isMobileSidebarOpen = false;
             
+            // スタイルを直接リセット
+            sidebar.style.transform = '';
+            
+            console.log('Mobile sidebar closed successfully');
+            
             // スクロールを有効化
             document.body.style.overflow = '';
+        } else {
+            console.error('Sidebar or mobile overlay not found');
         }
     }
 
@@ -111,10 +200,8 @@ class UIManager {
         document.getElementById('authContainer').style.display = 'none';
         document.getElementById('appContainer').style.display = 'grid';
         
-        // モバイルメニューのイベントリスナーを設定
-        setTimeout(() => {
-            this.bindMobileMenuEvents();
-        }, 100);
+        // モバイルメニューのイベントリスナーは既にinitializeMobileMenuで設定済み
+        console.log('App container shown');
     }
 
     showLoginForm() {
