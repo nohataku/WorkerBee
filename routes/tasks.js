@@ -134,8 +134,6 @@ router.get('/', [
         // フィルタリング
         let filteredTasks = normalizedTasks;
         
-        console.log('📊 Before filtering - Total tasks:', filteredTasks.length);
-        
         if (status !== 'all') {
             filteredTasks = filteredTasks.filter(task => task.status === status);
         }

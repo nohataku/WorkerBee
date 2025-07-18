@@ -1,7 +1,7 @@
 /*
  * WorkerBee Styles
- * Version: 1.1.0
- * Last Updated: 2025-07-16
+ * Version: 1.2.0
+ * Last Updated: 2025-07-18
  * Theme: Bee-themed unified colors
  */
 
@@ -1424,5 +1424,191 @@ body::before {
     
     .gantt_layout_content::-webkit-scrollbar-thumb:hover {
         background: var(--primary-yellow) !important;
+    }
+}
+
+/* カレンダービューのスタイル */
+.calendar-container {
+    background: var(--white);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 8px var(--shadow-color);
+    height: calc(100vh - 200px);
+    overflow: hidden;
+}
+
+#calendar {
+    height: 100%;
+    font-family: 'Noto Sans JP', sans-serif;
+}
+
+/* FullCalendarのカスタマイズ */
+.fc {
+    height: 100% !important;
+}
+
+.fc-header-toolbar {
+    margin-bottom: 1.5em !important;
+}
+
+.fc-toolbar-title {
+    font-size: 1.5rem !important;
+    color: var(--charcoal) !important;
+    font-weight: 600 !important;
+}
+
+.fc-button {
+    background: var(--primary-yellow) !important;
+    border: 1px solid var(--honey-gold) !important;
+    color: var(--charcoal) !important;
+    border-radius: 6px !important;
+    padding: 0.4rem 0.8rem !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+}
+
+.fc-button:hover {
+    background: var(--secondary-yellow) !important;
+    border-color: var(--accent-amber) !important;
+    transform: translateY(-1px) !important;
+}
+
+.fc-button:focus {
+    box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.3) !important;
+}
+
+.fc-button-active {
+    background: var(--accent-amber) !important;
+    border-color: var(--dark-brown) !important;
+}
+
+.fc-today-button {
+    background: var(--honey-gold) !important;
+}
+
+/* カレンダーグリッド */
+.fc-daygrid-day {
+    background: var(--white) !important;
+    border: 1px solid var(--medium-gray) !important;
+}
+
+.fc-daygrid-day:hover {
+    background: var(--light-cream) !important;
+}
+
+.fc-day-today {
+    background: rgba(255, 215, 0, 0.1) !important;
+}
+
+.fc-daygrid-day-number {
+    color: var(--charcoal) !important;
+    font-weight: 500 !important;
+    padding: 4px !important;
+}
+
+/* イベント（タスク）のスタイル */
+.fc-event {
+    border: none !important;
+    border-radius: 4px !important;
+    padding: 2px 6px !important;
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+}
+
+.fc-event:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 4px var(--shadow-color) !important;
+}
+
+/* 優先度別のタスクカラー */
+.fc-event.priority-low {
+    background: var(--success-green) !important;
+    color: var(--white) !important;
+}
+
+.fc-event.priority-medium {
+    background: var(--warning-orange) !important;
+    color: var(--white) !important;
+}
+
+.fc-event.priority-high {
+    background: var(--accent-amber) !important;
+    color: var(--white) !important;
+}
+
+.fc-event.priority-urgent {
+    background: var(--error-red) !important;
+    color: var(--white) !important;
+}
+
+/* 完了済みタスク */
+.fc-event.completed {
+    opacity: 0.6 !important;
+    text-decoration: line-through !important;
+}
+
+/* カレンダーコントロール */
+.calendar-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.calendar-view-buttons {
+    display: flex;
+    gap: 5px;
+    margin: 0 20px;
+}
+
+.calendar-view-buttons .btn.active {
+    background: var(--accent-amber) !important;
+    color: var(--white) !important;
+}
+
+/* 週表示・日表示のスタイル */
+.fc-timegrid-slot {
+    height: 2em !important;
+}
+
+.fc-timegrid-slot-label {
+    color: var(--charcoal) !important;
+    font-size: 0.85rem !important;
+}
+
+.fc-timegrid-axis {
+    background: var(--light-cream) !important;
+}
+
+.fc-timegrid-col-frame {
+    background: var(--white) !important;
+}
+
+/* モバイル対応 */
+@media (max-width: 768px) {
+    .calendar-container {
+        padding: 10px;
+        height: calc(100vh - 160px);
+    }
+    
+    .calendar-controls,
+    .calendar-view-buttons {
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+    
+    .fc-toolbar {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+    
+    .fc-toolbar-title {
+        font-size: 1.2rem !important;
+    }
+    
+    .fc-button {
+        padding: 0.3rem 0.6rem !important;
+        font-size: 0.8rem !important;
     }
 }

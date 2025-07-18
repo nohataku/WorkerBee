@@ -179,6 +179,8 @@ class UIManager {
     }
 
     showView(viewName) {
+        console.log('Switching to view:', viewName);
+        
         // ナビゲーションアイテムの更新
         document.querySelectorAll('.nav-item').forEach(item => {
             item.classList.remove('active');
@@ -197,6 +199,7 @@ class UIManager {
         const viewElement = document.getElementById(`${viewName}View`);
         if (viewElement) {
             viewElement.classList.add('active');
+            console.log('View activated:', `${viewName}View`);
         } else {
             console.error('View element not found:', `${viewName}View`);
         }
@@ -205,11 +208,14 @@ class UIManager {
         
         // カレンダービューの初期化
         if (viewName === 'calendar') {
+            console.log('Loading calendar view...');
             // EventManagerのhandleCalendarLoadを呼び出す
             if (this.eventManager) {
                 this.eventManager.handleCalendarLoad().catch(error => {
                     console.error('Error loading calendar:', error);
                 });
+            } else {
+                console.error('EventManager not available for calendar load');
             }
         }
         

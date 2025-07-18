@@ -470,9 +470,13 @@ class EventManager {
 
     initializeCalendarAndGantt() {
         try {
+            console.log('Initializing Calendar and Gantt managers...');
+            
             // CalendarManagerの初期化
             this.calendarManager = new CalendarManager(this.taskManager, this.notificationManager);
+            console.log('CalendarManager created');
             this.calendarManager.init();
+            console.log('CalendarManager initialized');
             
             // GanttManagerの初期化
             this.ganttManager = new GanttManager(this.taskManager, this.notificationManager);

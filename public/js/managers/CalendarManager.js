@@ -8,14 +8,17 @@ class CalendarManager {
 
     init() {
         try {
+            console.log('CalendarManager init started');
             this.initCalendar();
             this.setupEventListeners();
+            console.log('CalendarManager init completed');
         } catch (error) {
             console.error('Error initializing CalendarManager:', error);
         }
     }
 
     initCalendar() {
+        console.log('Initializing calendar...');
         const calendarEl = document.getElementById('calendar');
         
         if (!calendarEl) {
@@ -23,10 +26,14 @@ class CalendarManager {
             return;
         }
         
+        console.log('Calendar element found:', calendarEl);
+        
         if (typeof FullCalendar === 'undefined') {
             console.error('FullCalendar library not loaded!');
             return;
         }
+        
+        console.log('FullCalendar library is available');
         
         this.calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
@@ -75,6 +82,7 @@ class CalendarManager {
         });
 
         this.calendar.render();
+        console.log('Calendar rendered successfully');
     }
 
     setupEventListeners() {
