@@ -11,13 +11,11 @@ router.use(auth);
 router.get('/', async (req, res) => {
     try {
         const { search } = req.query;
-        console.log('Getting users, search query:', search);
 
         // GASから全ユーザーを取得
         let users = [];
         try {
             users = await gasService.getUsers();
-            console.log('Users from GAS:', users.length, 'users retrieved');
         } catch (gasError) {
             console.error('Error getting users from GAS:', gasError);
             // GASエラーの場合、デフォルトユーザーを返す
@@ -58,8 +56,6 @@ router.get('/', async (req, res) => {
                 _id: safeUser._id || safeUser.id // _idが無い場合はidを使用
             };
         });
-
-        console.log('Returning safe users:', safeUsers.length);
 
         res.json({
             success: true,

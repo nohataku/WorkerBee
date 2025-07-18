@@ -29,8 +29,6 @@ class UIManager {
     }
 
     bindMobileMenuEvents() {
-        console.log('Binding mobile menu events...');
-        
         // 既存のイベントリスナーを削除するため、関数を保存
         if (this.mobileMenuClickHandler) {
             const existingBtn = document.getElementById('mobileMenuBtn');
@@ -44,31 +42,21 @@ class UIManager {
         const mobileOverlay = document.getElementById('mobileOverlay');
         const sidebar = document.getElementById('sidebar');
 
-        console.log('Mobile menu elements:', {
-            mobileMenuBtn,
-            closeSidebarBtn,
-            mobileOverlay,
-            sidebar
-        });
-
         if (mobileMenuBtn) {
             // クリックハンドラーを保存
             this.mobileMenuClickHandler = (e) => {
-                console.log('Mobile menu button clicked!');
                 e.preventDefault();
                 e.stopPropagation();
                 this.toggleMobileSidebar();
             };
             
             mobileMenuBtn.addEventListener('click', this.mobileMenuClickHandler);
-            console.log('Mobile menu button event listener added');
         } else {
             console.warn('Mobile menu button not found');
         }
 
         if (closeSidebarBtn) {
             closeSidebarBtn.addEventListener('click', (e) => {
-                console.log('Close sidebar button clicked!');
                 e.preventDefault();
                 e.stopPropagation();
                 this.closeMobileSidebar();
@@ -79,7 +67,6 @@ class UIManager {
 
         if (mobileOverlay) {
             mobileOverlay.addEventListener('click', (e) => {
-                console.log('Mobile overlay clicked!');
                 e.preventDefault();
                 e.stopPropagation();
                 this.closeMobileSidebar();
@@ -106,10 +93,6 @@ class UIManager {
     }
 
     toggleMobileSidebar() {
-        console.log('Toggle mobile sidebar called. Current state:', this.isMobileSidebarOpen);
-        console.log('Current window width:', window.innerWidth);
-        console.log('Is mobile screen:', window.innerWidth <= 768);
-        
         if (this.isMobileSidebarOpen) {
             this.closeMobileSidebar();
         } else {
@@ -118,47 +101,20 @@ class UIManager {
     }
 
     openMobileSidebar() {
-        console.log('Opening mobile sidebar...');
         const sidebar = document.getElementById('sidebar');
         const mobileOverlay = document.getElementById('mobileOverlay');
         
-        console.log('Sidebar elements:', { sidebar, mobileOverlay });
-        
         if (sidebar && mobileOverlay) {
-            console.log('Before adding class - sidebar classes:', sidebar.className);
-            console.log('Before adding class - overlay classes:', mobileOverlay.className);
-            
             // 確実にクラスを追加
             sidebar.classList.add('open');
             mobileOverlay.classList.add('active');
             this.isMobileSidebarOpen = true;
             
-            console.log('After adding class - sidebar classes:', sidebar.className);
-            console.log('After adding class - overlay classes:', mobileOverlay.className);
-            
             // スタイルを強制的に適用
             setTimeout(() => {
-                // サイドバーのスタイルを確認
-                const sidebarStyles = window.getComputedStyle(sidebar);
-                console.log('Sidebar computed styles:', {
-                    position: sidebarStyles.position,
-                    left: sidebarStyles.left,
-                    top: sidebarStyles.top,
-                    width: sidebarStyles.width,
-                    height: sidebarStyles.height,
-                    transform: sidebarStyles.transform,
-                    zIndex: sidebarStyles.zIndex,
-                    display: sidebarStyles.display,
-                    visibility: sidebarStyles.visibility,
-                    backgroundColor: sidebarStyles.backgroundColor
-                });
-                
                 // 念のため、スタイルを直接適用
                 sidebar.style.transform = 'translateX(0)';
-                console.log('Forced sidebar transform to translateX(0)');
             }, 50);
-            
-            console.log('Mobile sidebar opened successfully');
             
             // スクロールを無効化
             document.body.style.overflow = 'hidden';
@@ -168,7 +124,6 @@ class UIManager {
     }
 
     closeMobileSidebar() {
-        console.log('Closing mobile sidebar...');
         const sidebar = document.getElementById('sidebar');
         const mobileOverlay = document.getElementById('mobileOverlay');
         
@@ -179,8 +134,6 @@ class UIManager {
             
             // スタイルを直接リセット
             sidebar.style.transform = '';
-            
-            console.log('Mobile sidebar closed successfully');
             
             // スクロールを有効化
             document.body.style.overflow = '';
@@ -199,9 +152,6 @@ class UIManager {
         document.getElementById('loadingScreen').style.display = 'none';
         document.getElementById('authContainer').style.display = 'none';
         document.getElementById('appContainer').style.display = 'grid';
-        
-        // モバイルメニューのイベントリスナーは既にinitializeMobileMenuで設定済み
-        console.log('App container shown');
     }
 
     showLoginForm() {
@@ -229,8 +179,6 @@ class UIManager {
     }
 
     showView(viewName) {
-        console.log('Switching to view:', viewName);
-        
         // ナビゲーションアイテムの更新
         document.querySelectorAll('.nav-item').forEach(item => {
             item.classList.remove('active');
@@ -249,7 +197,6 @@ class UIManager {
         const viewElement = document.getElementById(`${viewName}View`);
         if (viewElement) {
             viewElement.classList.add('active');
-            console.log('View element shown:', viewName);
         } else {
             console.error('View element not found:', `${viewName}View`);
         }
@@ -258,7 +205,6 @@ class UIManager {
         
         // カレンダービューの初期化
         if (viewName === 'calendar') {
-            console.log('Calendar view selected');
             // EventManagerのhandleCalendarLoadを呼び出す
             if (this.eventManager) {
                 this.eventManager.handleCalendarLoad().catch(error => {
@@ -269,7 +215,6 @@ class UIManager {
         
         // ガントチャートビューの初期化
         if (viewName === 'gantt') {
-            console.log('Gantt view selected');
             // EventManagerのhandleGanttLoadを呼び出す
             if (this.eventManager) {
                 this.eventManager.handleGanttLoad().then(() => {
@@ -294,19 +239,11 @@ class UIManager {
             
             // ユーザーリストが空の場合は読み込み（現在ユーザーも含める）
             if (allUsers.length === 0) {
-                console.log('AllUsers is empty, loading users with current user...');
                 allUsers = await this.taskManager.ensureUsersIncludeCurrentUser();
             }
             
             const container = document.getElementById('tasksList');
             const emptyState = document.getElementById('tasksEmpty');
-            
-            console.log('=== UIManager.renderTasks DEBUG ===');
-            console.log('Tasks count:', tasks.length);
-            console.log('AllUsers count:', allUsers.length);
-            if (allUsers.length === 0) {
-                console.log('WARNING: AllUsers is empty!');
-            }
             
             if (!container || !emptyState) {
                 console.error('Task container elements not found');
@@ -332,8 +269,6 @@ class UIManager {
                 }
             }).join('');
             
-            console.log('Tasks rendered:', tasks.length, 'items');
-            
         } catch (error) {
             console.error('Error in renderTasks:', error);
             const container = document.getElementById('tasksList');
@@ -349,18 +284,10 @@ class UIManager {
         
         // ユーザーリストが空の場合は読み込み（現在ユーザーも含める）
         if (allUsers.length === 0) {
-            console.log('AllUsers is empty in renderRecentTasks, loading users with current user...');
             allUsers = await this.taskManager.ensureUsersIncludeCurrentUser();
         }
         
         const container = document.getElementById('recentTasks');
-        
-        console.log('=== UIManager.renderRecentTasks DEBUG ===');
-        console.log('Recent tasks count:', tasks.length);
-        console.log('AllUsers count:', allUsers.length);
-        if (allUsers.length === 0) {
-            console.log('WARNING: AllUsers is empty in renderRecentTasks!');
-        }
         
         if (!container) {
             console.error('Recent tasks container not found');
@@ -374,12 +301,9 @@ class UIManager {
         
         container.innerHTML = tasks.map(task => TaskUtils.createTaskHTML(task, user, allUsers)).join('');
         
-        console.log('Recent tasks rendered:', tasks.length, 'items');
     }
 
     updateStatsDisplay(stats) {
-        console.log('UIManager.updateStatsDisplay: Received stats:', stats);
-        
         if (!stats) {
             console.warn('UIManager.updateStatsDisplay: Stats is null or undefined');
             return;
@@ -390,29 +314,14 @@ class UIManager {
         const pendingElement = document.getElementById('pendingTasks');
         const overdueElement = document.getElementById('overdueTasks');
         
-        console.log('UIManager.updateStatsDisplay: DOM elements found:', {
-            total: !!totalElement,
-            completed: !!completedElement,
-            pending: !!pendingElement,
-            overdue: !!overdueElement
-        });
-        
         if (totalElement) totalElement.textContent = stats.total || 0;
         if (completedElement) completedElement.textContent = stats.completed || 0;
         if (pendingElement) pendingElement.textContent = stats.pending || 0;
         if (overdueElement) overdueElement.textContent = stats.overdue || 0;
-        
-        console.log('UIManager.updateStatsDisplay: Updated values:', {
-            total: stats.total || 0,
-            completed: stats.completed || 0,
-            pending: stats.pending || 0,
-            overdue: stats.overdue || 0
-        });
     }
 
     async showTaskModal() {
         try {
-            console.log('=== SHOWING TASK MODAL ===');
             const modal = document.getElementById('taskModal');
             if (modal) {
                 modal.classList.add('show');
@@ -425,11 +334,8 @@ class UIManager {
                     }
                 }
                 
-                console.log('Modal shown, now loading users...');
-                
                 // ユーザーリストを読み込み
                 const users = await this.taskManager.loadAllUsers();
-                console.log('Users loaded in showTaskModal:', users);
                 this.setupUserDropdown(users);
                 
                 // 依存関係のドロップダウンを設定
@@ -437,7 +343,6 @@ class UIManager {
                 const currentTaskId = this.taskManager.getCurrentEditingTask()?.id || this.taskManager.getCurrentEditingTask()?._id;
                 this.setupDependencyDropdown(tasks, currentTaskId);
                 
-                console.log('Task modal shown:', this.taskManager.getCurrentEditingTask() ? 'Edit mode' : 'Create mode');
             } else {
                 console.error('Task modal element not found');
             }
@@ -448,13 +353,11 @@ class UIManager {
 
     hideTaskModal() {
         try {
-            console.log('=== HIDING TASK MODAL ===');
             const modal = document.getElementById('taskModal');
             if (modal) {
                 modal.classList.remove('show');
                 // 直接設定されたstyleもクリア
                 modal.style.display = '';
-                console.log('Modal hidden successfully');
             } else {
                 console.error('Task modal element not found');
             }
@@ -496,7 +399,6 @@ class UIManager {
             // 編集中のタスクをクリア
             this.taskManager.setCurrentEditingTask(null);
             
-            console.log('Task modal hidden and form reset');
         } catch (error) {
             console.error('Error hiding task modal:', error);
         }
@@ -504,44 +406,25 @@ class UIManager {
 
     setupUserDropdown(users) {
         try {
-            console.log('=== SETUP USER DROPDOWN ===');
             const dropdown = document.getElementById('taskAssignedTo');
             if (!dropdown) {
                 console.error('User dropdown element not found');
                 return;
             }
 
-            console.log('Dropdown element found:', dropdown);
-            console.log('Current dropdown children:', dropdown.children.length);
-            console.log('Setting up dropdown with users:', users);
-
             // 既存のオプションをクリア（最初の「選択してください」オプションは保持）
             while (dropdown.children.length > 1) {
                 dropdown.removeChild(dropdown.lastChild);
             }
 
-            console.log('Cleared dropdown, remaining children:', dropdown.children.length);
-
             // ユーザーオプションを追加
             users.forEach((user, index) => {
-                console.log(`Adding user ${index}:`, user);
-                
                 const option = document.createElement('option');
                 option.value = user._id || user.id || `user-${index}`;
                 option.textContent = `${user.displayName || user.username || 'Unknown'} (${user.email || ''})`;
                 
-                console.log('Created option:', option.value, option.textContent);
-                
                 dropdown.appendChild(option);
-                
-                console.log('Added option to dropdown');
             });
-
-            console.log('Final dropdown children count:', dropdown.children.length);
-            console.log('User dropdown populated with', users.length, 'users');
-            
-            // ドロップダウンのHTMLを確認
-            console.log('Dropdown HTML:', dropdown.outerHTML);
             
         } catch (error) {
             console.error('Error setting up user dropdown:', error);
@@ -549,9 +432,7 @@ class UIManager {
     }
 
     setupDefaultUsers() {
-        console.log('Setting up default users...');
         const user = this.authManager.getUser();
-        console.log('Current user:', user);
         
         const defaultUsers = [];
         
@@ -577,14 +458,11 @@ class UIManager {
             email: 'test2@example.com'
         });
         
-        console.log('Default users to setup:', defaultUsers);
         this.setupUserDropdown(defaultUsers);
     }
 
     async populateTaskEditForm(task) {
         try {
-            console.log('Populating task edit form with:', task);
-            
             const taskId = task?._id || task?.id;
             if (!task || !taskId) {
                 console.error('Invalid task data for editing:', task);
@@ -596,7 +474,6 @@ class UIManager {
             let taskData = task;
             try {
                 taskData = await this.taskManager.getTaskDetails(taskId);
-                console.log('Latest task data retrieved:', taskData);
             } catch (error) {
                 console.warn('Failed to get latest task details, using current data:', error);
                 // 現在のタスクデータを使用して続行
@@ -669,8 +546,6 @@ class UIManager {
                     const user = this.authManager.getUser();
                     assignedToField.value = user?._id || user?.id || '';
                 }
-                
-                console.log('Assigned user set to:', assignedToField.value);
             }
             
             // 依存関係の設定
@@ -687,11 +562,7 @@ class UIManager {
                         option.selected = taskData.dependencies.includes(option.value);
                     });
                 }
-                
-                console.log('Dependencies set to:', taskData?.dependencies);
             }
-            
-            console.log('Task edit form populated successfully');
             
         } catch (error) {
             console.error('Error in populateTaskEditForm:', error);
@@ -714,8 +585,6 @@ class UIManager {
 
     // リアルタイム更新を各ビューに通知
     onTaskUpdated(updatedTask) {
-        console.log('UIManager: Real-time task update received:', updatedTask);
-        
         if (this.calendarManager) {
             this.calendarManager.onTaskUpdated && this.calendarManager.onTaskUpdated(updatedTask);
         }
@@ -726,8 +595,6 @@ class UIManager {
     }
 
     onTaskDeleted(deletedTaskId) {
-        console.log('UIManager: Real-time task deletion received:', deletedTaskId);
-        
         if (this.calendarManager) {
             this.calendarManager.onTaskDeleted && this.calendarManager.onTaskDeleted(deletedTaskId);
         }
@@ -738,8 +605,6 @@ class UIManager {
     }
 
     onTaskAdded(newTask) {
-        console.log('UIManager: Real-time task addition received:', newTask);
-        
         if (this.calendarManager) {
             this.calendarManager.onTaskAdded && this.calendarManager.onTaskAdded(newTask);
         }
@@ -758,8 +623,6 @@ class UIManager {
     }
 
     openTaskModal(mode = 'create', task = null) {
-        console.log('Opening task modal:', mode, task);
-        
         // 編集モードの場合、現在のタスクを設定
         if (mode === 'edit' && task) {
             this.taskManager.setCurrentEditingTask(task);
@@ -773,14 +636,11 @@ class UIManager {
 
     setupDependencyDropdown(tasks, currentTaskId = null) {
         try {
-            console.log('=== SETUP DEPENDENCY DROPDOWN ===');
             const dropdown = document.getElementById('taskDependencies');
             if (!dropdown) {
                 console.error('Dependency dropdown element not found');
                 return;
             }
-
-            console.log('Setting up dependency dropdown with tasks:', tasks);
 
             // 既存のオプションをクリア
             dropdown.innerHTML = '';
@@ -797,8 +657,6 @@ class UIManager {
                 option.textContent = `${task.title} (${task.status})`;
                 dropdown.appendChild(option);
             });
-
-            console.log('Dependency dropdown populated with', availableTasks.length, 'tasks');
             
         } catch (error) {
             console.error('Error setting up dependency dropdown:', error);

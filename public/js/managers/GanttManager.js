@@ -10,19 +10,16 @@ class GanttManager {
     }
 
     init() {
-        console.log('GanttManager.init() called');
         try {
             this.initGantt();
             this.setupEventListeners();
             this.isInitialized = true;
-            console.log('GanttManager initialized successfully');
         } catch (error) {
             console.error('Error initializing GanttManager:', error);
         }
     }
 
     initGantt() {
-        console.log('Initializing DHTMLX Gantt...');
         
         const ganttEl = document.getElementById('gantt_here');
         if (!ganttEl) {
@@ -34,8 +31,6 @@ class GanttManager {
             console.error('DHTMLX Gantt library not loaded!');
             return;
         }
-        
-        console.log('Configuring Gantt chart...');
         
         // モバイル対応の設定
         const isMobile = window.innerWidth <= 768;
@@ -169,7 +164,6 @@ class GanttManager {
         });
 
         // ガントチャートを初期化
-        console.log('Initializing Gantt chart...');
         gantt.init("gantt_here");
         
         // モバイル対応のために初期化後にサイズを調整
@@ -182,7 +176,6 @@ class GanttManager {
             }
         }, 100);
         
-        console.log('Gantt chart initialized successfully');
     }
 
     setupEventListeners() {
@@ -252,8 +245,6 @@ class GanttManager {
                 e.preventDefault();
             }
         });
-
-        console.log('Mobile gantt events set up');
     }
 
     handleResize() {
@@ -313,8 +304,6 @@ class GanttManager {
 
     async loadAllTasks() {
         try {
-            console.log('GanttManager: Loading all tasks for gantt chart...');
-            
             // フィルタを無視してすべてのタスクを取得
             const response = await this.taskManager.apiClient.call('/api/tasks?status=all&limit=100');
             
@@ -326,8 +315,7 @@ class GanttManager {
             } else if (response && response.success && response.data) {
                 allTasks = response.data.tasks || [];
             }
-            
-            console.log('GanttManager: Loaded', allTasks.length, 'tasks for gantt chart');
+
             this.tasks = allTasks;
             
             // ユーザーリストの読み込みを確実に行ってからガントチャートを更新
@@ -350,22 +338,6 @@ class GanttManager {
         // TaskManagerから最新のタスクデータを取得
         const latestTasks = this.taskManager.getTasks();
         this.tasks = latestTasks;
-        
-        console.log('GanttManager - TaskManager tasks:', latestTasks.length);
-        console.log('GanttManager - All tasks:', latestTasks.map(t => ({ id: t.id || t._id, title: t.title, status: t.status })));
-        
-        // "test"を含むタスクを特別に確認
-        const testTasks = latestTasks.filter(t => t.title && t.title.toLowerCase().includes('test'));
-        console.log('GanttManager - Test tasks found:', testTasks.length);
-        testTasks.forEach(task => {
-            console.log('GanttManager - Test task:', {
-                id: task.id || task._id,
-                title: task.title,
-                status: task.status,
-                createdAt: task.createdAt,
-                dueDate: task.dueDate
-            });
-        });
         
         const ganttData = {
             data: this.tasks.map(task => {
@@ -422,14 +394,11 @@ class GanttManager {
                     originalTask: task
                 };
                 
-                console.log('Gantt task created:', ganttTask.text, 'Start:', ganttTask.start_date, 'End:', ganttTask.end_date);
                 return ganttTask;
             }),
             links: [] // タスク間の依存関係（今後実装）
         };
-
-        console.log('Updating gantt data with:', ganttData.data.length, 'tasks');
-        console.log('Gantt data tasks:', ganttData.data.map(t => ({ id: t.id, text: t.text, status: t.status })));
+        
         gantt.clearAll();
         gantt.parse(ganttData);
         gantt.render(); // ガントチャートを再描画
@@ -502,7 +471,6 @@ class GanttManager {
 
     handleTaskAdd(id, task) {
         // 新しいタスクがガントチャートで作成された場合
-        console.log('Task added:', id, task);
     }
 
     async handleTaskUpdate(id, task) {
@@ -510,7 +478,6 @@ class GanttManager {
         if (originalTask) {
             // 既に更新中の場合は待機
             if (this.isUpdating) {
-                console.log('Update already in progress, skipping task update');
                 return;
             }
 
@@ -529,18 +496,12 @@ class GanttManager {
                 const newDueDate = new Date(task.end_date);
                 const updateData = { dueDate: newDueDate.toISOString() };
                 
-                console.log('Updating task:', taskId, updateData);
-                console.log('Original task:', originalTask);
-                console.log('Gantt task:', task);
-                
                 // 安全な更新データのみを送信
                 const safeUpdateData = { dueDate: updateData.dueDate };
-                console.log('Safe update data to send:', safeUpdateData);
                 
                 // サーバーに更新を送信
                 const response = await this.taskManager.updateTask(taskId, safeUpdateData);
                 
-                console.log('Task update successful:', response);
                 if (response.success) {
                     this.notificationManager.show('タスクを更新しました', 'success');
                     
@@ -576,12 +537,10 @@ class GanttManager {
     }
 
     handleTaskMove(id, mode, task) {
-        console.log('Task moved:', id, mode, task);
         this.handleTaskDateChange(id, task, 'move');
     }
 
     handleTaskDrag(id, mode, task) {
-        console.log('Task dragged:', id, mode, task);
         this.handleTaskDateChange(id, task, 'drag');
     }
 
@@ -602,20 +561,11 @@ class GanttManager {
 
         // 既に更新中の場合は待機
         if (this.isUpdating) {
-            console.log('Update already in progress, queuing update for task:', taskId);
             this.pendingUpdates.set(taskId, { task, changeType });
             return;
         }
 
         this.isUpdating = true;
-
-        console.log(`Task ${changeType} detected:`, {
-            id: id,
-            taskId: taskId,
-            originalTask: originalTask,
-            newStartDate: task.start_date,
-            newEndDate: task.end_date
-        });
 
         try {
             // 新しい開始日時と終了日時を取得
@@ -646,20 +596,13 @@ class GanttManager {
 
             // 更新するデータがある場合のみサーバーに送信
             if (Object.keys(updateData).length > 0) {
-                console.log('Updating task with data:', updateData);
-                console.log('Original task:', originalTask);
-                console.log('Task ID:', taskId);
-                
                 // 安全な更新データのみを送信（不要なフィールドを除外）
                 const safeUpdateData = {};
                 if (updateData.createdAt) safeUpdateData.createdAt = updateData.createdAt;
                 if (updateData.dueDate) safeUpdateData.dueDate = updateData.dueDate;
                 
-                console.log('Safe update data to send:', safeUpdateData);
-                
                 const response = await this.taskManager.updateTask(taskId, safeUpdateData);
                 
-                console.log('Task update successful:', response);
                 if (response.success) {
                     this.notificationManager.show('タスクの日時を更新しました', 'success');
                     
@@ -769,8 +712,6 @@ class GanttManager {
 
     // リアルタイム更新を受信した際の処理
     onTaskUpdated(updatedTask) {
-        console.log('Real-time task update received:', updatedTask);
-        
         // 現在更新中でない場合のみ処理
         if (!this.isUpdating) {
             // TaskManagerのタスクデータを更新
@@ -781,7 +722,6 @@ class GanttManager {
             
             if (taskIndex !== -1) {
                 this.taskManager.tasks[taskIndex] = { ...this.taskManager.tasks[taskIndex], ...updatedTask };
-                console.log('Task updated in TaskManager:', this.taskManager.tasks[taskIndex]);
             }
             
             // ガントチャートを更新
@@ -793,15 +733,11 @@ class GanttManager {
                     gantt.render();
                 }
             }, 100);
-        } else {
-            console.log('Currently updating, skipping real-time update');
         }
     }
 
     // タスクが削除された際の処理
     onTaskDeleted(deletedTaskId) {
-        console.log('Real-time task deletion received:', deletedTaskId);
-        
         if (!this.isUpdating) {
             // TaskManagerのタスクデータから削除
             const taskIndex = this.taskManager.tasks.findIndex(t => 
@@ -810,7 +746,6 @@ class GanttManager {
             
             if (taskIndex !== -1) {
                 this.taskManager.tasks.splice(taskIndex, 1);
-                console.log('Task deleted from TaskManager');
             }
             
             // ガントチャートを更新
@@ -827,8 +762,6 @@ class GanttManager {
 
     // 新しいタスクが追加された際の処理
     onTaskAdded(newTask) {
-        console.log('Real-time task addition received:', newTask);
-        
         if (!this.isUpdating) {
             // TaskManagerのタスクデータに追加
             const existingIndex = this.taskManager.tasks.findIndex(t => 
@@ -838,7 +771,6 @@ class GanttManager {
             
             if (existingIndex === -1) {
                 this.taskManager.tasks.push(newTask);
-                console.log('Task added to TaskManager:', newTask);
             }
             
             // ガントチャートを更新

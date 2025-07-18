@@ -1,8 +1,6 @@
 // ライブラリローダーユーティリティ
 class LibraryLoader {
     static async waitForLibraries() {
-        console.log('Waiting for libraries to load...');
-        
         // FullCalendarの読み込み待機
         await this.waitForLibrary(() => typeof FullCalendar !== 'undefined', 'FullCalendar');
         
@@ -21,7 +19,6 @@ class LibraryLoader {
                 attempts++;
                 
                 if (condition()) {
-                    console.log(`${name} library loaded`);
                     resolve();
                 } else if (attempts >= maxAttempts) {
                     console.error(`Failed to load ${name} library after ${maxAttempts} attempts`);

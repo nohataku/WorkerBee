@@ -17,17 +17,12 @@ class GasService {
                 payload: { email, password }
             };
             
-            console.log('📤 Sending to GAS:', { url: this.gasUrl, action: requestData.action });
-            
             const response = await axios.post(this.gasUrl, requestData, {
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 timeout: 30000
             });
-            
-            console.log('📥 GAS Response status:', response.status);
-            console.log('📥 GAS Response data:', response.data);
             
             if (response.data.success) {
                 return response.data.data;
@@ -96,7 +91,6 @@ class GasService {
     // タスク関連のメソッド
     async getTasks() {
         try {
-            console.log('Requesting tasks from GAS...');
             const response = await axios.get(`${this.gasUrl}?action=getTasks`, {
                 timeout: 10000, // 10秒のタイムアウト
                 headers: {
@@ -104,15 +98,9 @@ class GasService {
                 }
             });
             
-            console.log('GAS getTasks response status:', response.status);
-            console.log('GAS getTasks response data:', response.data);
-            
             if (response.data && response.data.success) {
                 const responseData = response.data.data || {};
                 const tasks = responseData.tasks || responseData || [];
-                console.log('📊 GAS getTasks - Raw tasks count:', tasks.length);
-                console.log('📊 GAS getTasks - Tasks array is valid:', Array.isArray(tasks));
-                
                 const validTasks = Array.isArray(tasks) ? tasks : [];
                 console.log('✅ Successfully retrieved tasks from GAS:', validTasks.length);
                 return validTasks;
@@ -157,8 +145,6 @@ class GasService {
 
     async updateTask(taskId, updates) {
         try {
-            console.log('Updating task in GAS:', taskId, updates);
-            
             const response = await axios.post(this.gasUrl, {
                 action: 'updateTask',
                 payload: { id: taskId, ...updates }
@@ -168,9 +154,6 @@ class GasService {
                     'User-Agent': 'WorkerBee/1.0'
                 }
             });
-            
-            console.log('GAS updateTask response status:', response.status);
-            console.log('GAS updateTask response data:', response.data);
             
             if (response.data && response.data.success) {
                 console.log('Task updated successfully in GAS');
@@ -216,9 +199,7 @@ class GasService {
 
     // ユーザー統計を取得
     async getUserStats() {
-        try {
-            console.log('Getting user stats from GAS...');
-            
+        try { 
             const response = await axios.post(this.gasUrl, {
                 action: 'getUserStats',
                 payload: {}
@@ -228,9 +209,6 @@ class GasService {
                     'User-Agent': 'WorkerBee/1.0'
                 }
             });
-            
-            console.log('GAS getUserStats response status:', response.status);
-            console.log('GAS getUserStats response data:', response.data);
             
             if (response.data && response.data.success) {
                 console.log('User stats loaded successfully from GAS');

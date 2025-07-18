@@ -77,8 +77,6 @@ class ApiClient {
             if (requestData) {
                 options.body = JSON.stringify(requestData);
             }
-
-            console.log(`API Call [${this.config.current}]: ${requestMethod} ${fullUrl}`, requestData ? { data: requestData } : '');
             
             const response = await fetch(fullUrl, options);
             
@@ -88,7 +86,6 @@ class ApiClient {
                 
                 // 401エラーの場合、認証をクリアしてログイン画面に戻す（ただし、ログインエンドポイント自体は除く）
                 if (response.status === 401 && !url.includes('/login')) {
-                    console.log('Unauthorized, redirecting to login...');
                     this.setToken(null);
                     throw new Error('認証が必要です');
                 }
@@ -105,18 +102,14 @@ class ApiClient {
             }
 
             const result = await response.json();
-            console.log(`API Response [${this.config.current}]: ${method} ${url}`, result);
-            console.log('🔍 Debug - Raw response object:', JSON.stringify(result, null, 2));
             
             // 環境に応じたレスポンス処理
             if (this.config.current === 'development') {
                 // Node.jsサーバーからの直接レスポンス
-                console.log('🔍 Debug - Returning Node.js response:', result);
                 return result;
             } else {
                 // GASからのレスポンス（success/data形式）
                 if (result.success) {
-                    console.log('GAS Response data:', result.data);
                     return result.data;
                 } else {
                     console.error('GAS Error response:', result);

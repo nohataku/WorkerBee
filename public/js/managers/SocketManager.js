@@ -12,11 +12,9 @@ class SocketManager {
         if (this.config.current === 'development' && 
             this.config.socketUrl && 
             typeof io !== 'undefined') {
-            console.log('リアルタイム機能を初期化します（開発環境）');
             this.socket = io(this.config.socketUrl);
             
             this.socket.on('connect', () => {
-                console.log('Socket connected');
                 this.socket.emit('join-room', this.user._id);
             });
 

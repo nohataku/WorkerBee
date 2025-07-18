@@ -7,18 +7,15 @@ class CalendarManager {
     }
 
     init() {
-        console.log('CalendarManager.init() called');
         try {
             this.initCalendar();
             this.setupEventListeners();
-            console.log('CalendarManager initialized successfully');
         } catch (error) {
             console.error('Error initializing CalendarManager:', error);
         }
     }
 
     initCalendar() {
-        console.log('Initializing FullCalendar...');
         const calendarEl = document.getElementById('calendar');
         
         if (!calendarEl) {
@@ -30,8 +27,6 @@ class CalendarManager {
             console.error('FullCalendar library not loaded!');
             return;
         }
-        
-        console.log('Creating FullCalendar instance...');
         
         this.calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
@@ -79,9 +74,7 @@ class CalendarManager {
             }
         });
 
-        console.log('Rendering FullCalendar...');
         this.calendar.render();
-        console.log('FullCalendar rendered successfully');
     }
 
     setupEventListeners() {
@@ -139,14 +132,11 @@ class CalendarManager {
     }
 
     loadTasks(tasks) {
-        console.log('CalendarManager.loadTasks: Received', tasks.length, 'tasks');
         this.tasks = tasks;
         this.updateCalendarEvents();
     }
 
     updateCalendarEvents() {
-        console.log('CalendarManager.updateCalendarEvents: Processing', this.tasks.length, 'tasks');
-        
         const events = this.tasks.map(task => {
             const event = {
                 id: task._id || task.id,
@@ -168,15 +158,12 @@ class CalendarManager {
 
             // 期限が設定されていない場合は表示しない
             if (!event.start) {
-                console.log('CalendarManager: Task without due date skipped:', task.title);
                 return null;
             }
 
-            console.log('CalendarManager: Event created:', event.title, 'at', event.start);
             return event;
         }).filter(Boolean);
 
-        console.log('CalendarManager: Total events to display:', events.length);
         this.calendar.removeAllEvents();
         this.calendar.addEventSource(events);
     }
@@ -246,11 +233,6 @@ class CalendarManager {
                 this.notificationManager.show('タスクの更新に失敗しました', 'error');
                 info.revert(); // 変更を元に戻す
             });
-    }
-
-    handleEventResize(info) {
-        // リサイズイベントの処理（必要に応じて実装）
-        console.log('Event resized:', info);
     }
 
     showTaskDetails(task) {

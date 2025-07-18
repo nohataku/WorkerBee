@@ -44,9 +44,6 @@ class TaskManager {
             
             const statusFilter = document.getElementById('statusFilter')?.value || 'all';
             const priorityFilter = document.getElementById('priorityFilter')?.value || '';
-            
-            console.log('Filters applied:', { statusFilter, priorityFilter });
-            
             const params = new URLSearchParams({
                 status: statusFilter,
                 limit: 50
@@ -55,32 +52,22 @@ class TaskManager {
             if (priorityFilter) {
                 params.append('priority', priorityFilter);
             }
-
-            console.log('Request params:', params.toString());
             
             const response = await this.apiClient.call(`/api/tasks?${params}`);
-            
-            console.log('Load tasks response:', response);
             
             if (response && response.tasks) {
                 // レスポンスに直接tasksプロパティがある場合
                 this.tasks = response.tasks || [];
-                console.log('Tasks loaded from response.tasks:', this.tasks.length);
-                console.log('First few tasks:', this.tasks.slice(0, 3));
                 this.updateViews();
                 return this.tasks;
             } else if (Array.isArray(response)) {
                 // レスポンスが直接配列の場合（GAS環境の可能性）
                 this.tasks = response;
-                console.log('Tasks loaded from array response:', this.tasks.length);
-                console.log('First few tasks:', this.tasks.slice(0, 3));
                 this.updateViews();
                 return this.tasks;
             } else if (response && response.success && response.data) {
                 // Node.js環境ではsuccess/data形式
                 this.tasks = response.data.tasks || [];
-                console.log('Tasks loaded from response.data.tasks:', this.tasks.length);
-                console.log('First few tasks:', this.tasks.slice(0, 3));
                 this.updateViews();
                 return this.tasks;
             } else {
@@ -99,10 +86,7 @@ class TaskManager {
 
     async loadRecentTasks() {
         try {
-            console.log('Loading recent tasks...');
             const response = await this.apiClient.call('/api/tasks?limit=5&sortBy=createdAt&sortOrder=desc');
-            
-            console.log('Load recent tasks response:', response);
             
             if (response && response.tasks) {
                 // レスポンスに直接tasksプロパティがある場合
@@ -125,11 +109,9 @@ class TaskManager {
 
     async getTaskDetails(taskId) {
         try {
-            console.log('Getting task details for:', taskId);
             const response = await this.apiClient.call(`/api/tasks/${taskId}`, 'GET');
             
             if (response && response.success) {
-                console.log('Task details retrieved:', response.data.task);
                 return response.data.task;
             } else {
                 throw new Error(response?.message || 'タスクの詳細取得に失敗しました');
@@ -149,8 +131,6 @@ class TaskManager {
                 return;
             }
             
-            console.log('Toggling task:', taskId, 'current completed:', task.completed);
-            
             // completedとstatusの両方を送信して互換性を確保
             const newCompleted = !task.completed;
             const newStatus = newCompleted ? 'completed' : 'pending';
@@ -159,8 +139,6 @@ class TaskManager {
                 completed: newCompleted,
                 status: newStatus
             });
-            
-            console.log('Toggle task response:', response);
             
             // GAS環境では、ApiClientがresult.dataを直接返すため、responseにはタスクオブジェクトが含まれる
             if (response && (response.id || response._id)) {
@@ -203,8 +181,6 @@ class TaskManager {
         
         try {
             const response = await this.apiClient.call(`/api/tasks/${taskId}`, 'DELETE');
-            
-            console.log('Delete task response:', response);
             
             // GAS環境では、削除成功時に削除されたタスクオブジェクトまたは成功メッセージが返される
             // レスポンスが存在し、エラーメッセージがない場合は成功とみなす
@@ -249,16 +225,12 @@ class TaskManager {
             
             if (this.currentEditingTask) {
                 const taskId = this.currentEditingTask._id || this.currentEditingTask.id;
-                console.log('Updating task:', taskId, taskData);
                 response = await this.apiClient.call(`/api/tasks/${taskId}`, 'PUT', taskData);
                 action = '更新';
             } else {
-                console.log('Creating new task:', taskData);
                 response = await this.apiClient.call('/api/tasks', 'POST', taskData);
                 action = '作成';
             }
-            
-            console.log('Task submit response:', response);
             
             // GAS環境では、ApiClientがresult.dataを直接返すため、responseにはタスクオブジェクトが含まれる
             // タスクオブジェクトには通常idプロパティが含まれるため、これで成功を判定
@@ -303,8 +275,6 @@ class TaskManager {
         try {
             const response = await this.apiClient.call(`/api/tasks?search=${encodeURIComponent(query)}`);
             
-            console.log('Search tasks response:', response);
-            
             // GAS環境では、ApiClientがresult.dataを直接返すため、responseには配列が含まれる
             if (Array.isArray(response)) {
                 this.tasks = response;
@@ -337,7 +307,6 @@ class TaskManager {
             return new Date(task.dueDate) < now;
         }).length;
         const stats = { total, completed, pending, overdue };
-        console.log('TaskManager.loadStats: Calculated client stats:', stats);
         return stats;
     }
 
@@ -347,30 +316,23 @@ class TaskManager {
             
             // キャッシュされたユーザーがある場合は一旦それを返し、バックグラウンドで更新
             if (this.allUsers.length > 0) {
-                console.log('Using cached users, updating in background...');
                 // バックグラウンドで更新
                 this.updateUsersInBackground();
                 return this.allUsers;
             }
             
-            console.log('Loading all users for dropdown...');
-            
             const response = await this.apiClient.call('/api/users');
-            console.log('Users API response:', response);
-            
             if (response && Array.isArray(response)) {
                 // GAS環境では、レスポンスが直接配列で返される
                 this.allUsers = response;
-                console.log('All users loaded from API (Array):', this.allUsers.length, 'users');
-                
+
                 // ローカルストレージにキャッシュ
                 this.cacheUsers(this.allUsers);
                 return this.allUsers;
             } else if (response && response.success && response.data) {
                 // Node.js環境では、success/data形式で返される
                 this.allUsers = response.data.users || response.data || [];
-                console.log('All users loaded from API (Object):', this.allUsers.length, 'users');
-                
+
                 // ローカルストレージにキャッシュ
                 this.cacheUsers(this.allUsers);
                 return this.allUsers;
@@ -450,7 +412,6 @@ class TaskManager {
     }
 
     getAllUsers() {
-        console.log('TaskManager.getAllUsers called, returning:', this.allUsers.length, 'users');
         console.log('AllUsers data:', this.allUsers);
         return this.allUsers;
     }
@@ -463,7 +424,6 @@ class TaskManager {
         if (this.authManager) {
             const currentUser = this.authManager.getUser();
             if (currentUser && !users.find(u => u._id === currentUser._id || u.id === currentUser.id)) {
-                console.log('Adding current user to users list');
                 users = [...users, currentUser];
                 this.allUsers = users;
             }
@@ -481,13 +441,6 @@ class TaskManager {
 
     async updateTask(taskId, updateData) {
         try {
-            console.log('TaskManager.updateTask called with:', {
-                taskId: taskId,
-                updateData: updateData,
-                updateDataType: typeof updateData,
-                updateDataKeys: Object.keys(updateData)
-            });
-            
             // 日付の検証
             if (updateData.startDate || updateData.dueDate) {
                 try {
@@ -509,8 +462,6 @@ class TaskManager {
             }
             
             const response = await this.apiClient.call(`/api/tasks/${taskId}`, 'PUT', updateData);
-            
-            console.log('Update task response:', response);
             
             // GAS環境では、ApiClientがresult.dataを直接返すため、responseにはタスクオブジェクトが含まれる
             if (response && (response.id || response._id)) {
@@ -555,8 +506,6 @@ class TaskManager {
     }
 
     editTask(task) {
-        console.log('Editing task:', task);
-        
         // 編集中のタスクを設定
         this.setCurrentEditingTask(task);
         
@@ -573,19 +522,16 @@ class TaskManager {
 
         // リアルタイムタスク更新を受信
         this.socketManager.on('task-updated', (taskData) => {
-            console.log('Received task update:', taskData);
             this.handleRealtimeTaskUpdate(taskData);
         });
 
         // リアルタイムタスク削除を受信
         this.socketManager.on('task-deleted', (taskId) => {
-            console.log('Received task deletion:', taskId);
             this.handleRealtimeTaskDelete(taskId);
         });
 
         // リアルタイムタスク追加を受信
         this.socketManager.on('task-added', (taskData) => {
-            console.log('Received task addition:', taskData);
             this.handleRealtimeTaskAdd(taskData);
         });
     }

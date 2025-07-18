@@ -98,17 +98,6 @@ function getEnvironmentConfig() {
         ...config.environment[env]
     };
     
-    // デバッグ情報を出力
-    console.log('🔧 WorkerBee Environment Config:', {
-        hostname: window.location.hostname,
-        port: window.location.port,
-        protocol: window.location.protocol,
-        environment: env,
-        apiBaseUrl: envConfig.apiBaseUrl,
-        socketUrl: envConfig.socketUrl,
-        gasUrl: envConfig.gas?.webAppUrl
-    });
-    
     return envConfig;
 }
 

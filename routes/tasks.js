@@ -25,23 +25,15 @@ router.get('/', [
 
         const { status = 'all', priority, search, limit = 50, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
 
-        console.log('Getting tasks with filters:', { status, priority, search, limit, sortBy, sortOrder });
-
         // GASから全タスクとユーザーを並行取得
         const [tasks, users] = await Promise.all([
             gasService.getTasks(),
             gasService.getUsers()
         ]);
-        
-        console.log('Raw tasks from GAS:', tasks?.length || 0);
-        console.log('Raw users from GAS:', users?.length || 0);
 
         // タスクとユーザーが配列でない場合の処理
         const tasksArray = Array.isArray(tasks) ? tasks : [];
         const usersArray = Array.isArray(users) ? users : [];
-
-        console.log('📊 Tasks array length after validation:', tasksArray.length);
-        console.log('📊 Users array length after validation:', usersArray.length);
 
         // ユーザーマップを作成（高速検索用）
         const userMap = new Map();
@@ -50,8 +42,6 @@ router.get('/', [
                 userMap.set(user._id || user.id, user);
             }
         });
-
-        console.log('User map created with', userMap.size, 'users');
 
         // データの正規化（フロントエンドが期待する形式に変換）
         const normalizedTasks = tasksArray.map(task => {
@@ -141,9 +131,6 @@ router.get('/', [
             }
         }).filter(task => task !== null);
 
-        console.log('📊 Normalized tasks count:', normalizedTasks.length);
-        console.log('📊 Tasks that failed normalization:', tasksArray.length - normalizedTasks.length);
-
         // フィルタリング
         let filteredTasks = normalizedTasks;
         
@@ -151,12 +138,10 @@ router.get('/', [
         
         if (status !== 'all') {
             filteredTasks = filteredTasks.filter(task => task.status === status);
-            console.log('📊 After status filter (' + status + '):', filteredTasks.length);
         }
 
         if (priority) {
             filteredTasks = filteredTasks.filter(task => task.priority === priority);
-            console.log('📊 After priority filter (' + priority + '):', filteredTasks.length);
         }
 
         if (search) {
@@ -165,7 +150,6 @@ router.get('/', [
                 task.title.toLowerCase().includes(searchLower) ||
                 (task.description && task.description.toLowerCase().includes(searchLower))
             );
-            console.log('📊 After search filter (' + search + '):', filteredTasks.length);
         }
 
         // ソート
@@ -175,13 +159,10 @@ router.get('/', [
             return sortOrder === 'desc' ? bValue - aValue : aValue - bValue;
         });
 
-        console.log('📊 After sorting:', filteredTasks.length);
-
         // 制限
         const limitNum = parseInt(limit) || 50;
         if (limitNum > 0) {
             filteredTasks = filteredTasks.slice(0, limitNum);
-            console.log('📊 After limit (' + limitNum + '):', filteredTasks.length);
         }
 
         console.log('✅ Final filtered tasks count:', filteredTasks.length);
@@ -285,13 +266,9 @@ router.post('/', [
 router.get('/stats/user', async (req, res) => {
     try {
         console.log('=== TASK STATS API ===');
-        console.log('Getting task statistics...');
 
         // GASから統計データを取得
         const statsData = await gasService.getUserStats();
-        
-        console.log('Stats data from GAS:', statsData);
-        console.log('Stats object:', statsData?.stats);
 
         const responseData = {
             success: true,
@@ -299,8 +276,6 @@ router.get('/stats/user', async (req, res) => {
                 stats: statsData.stats
             }
         };
-
-        console.log('Sending response:', responseData);
 
         res.json(responseData);
 
@@ -373,8 +348,6 @@ router.put('/:id', [
         if (req.body.status !== undefined) {
             updates.completed = req.body.status === 'completed';
         }
-
-        console.log('Task update request:', { taskId, updates });
 
         if (Object.keys(updates).length === 0) {
             return res.status(400).json({
@@ -455,7 +428,6 @@ router.delete('/:id', async (req, res) => {
 router.get('/:id', async (req, res) => {
     try {
         const taskId = req.params.id;
-        console.log('Getting task details for ID:', taskId);
 
         // GASから全タスクとユーザーを並行取得
         const [allTasks, users] = await Promise.all([
@@ -566,8 +538,6 @@ router.get('/:id', async (req, res) => {
             assignedTo: assignedToInfo,
             createdBy: createdByInfo
         };
-
-        console.log('Task details retrieved:', normalizedTask);
 
         res.json({
             success: true,

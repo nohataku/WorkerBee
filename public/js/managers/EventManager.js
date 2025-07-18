@@ -67,7 +67,7 @@ class EventManager {
 
         // ユーザー選択プルダウン
         document.getElementById('taskAssignedTo').addEventListener('change', (e) => {
-            console.log('Assigned user changed:', e.target.value);
+            // 担当者変更の処理（必要に応じて実装）
         });
     }
 
@@ -79,36 +79,27 @@ class EventManager {
         
         if (closeBtn) {
             closeBtn.addEventListener('click', (e) => {
-                console.log('Close button clicked');
                 e.preventDefault();
                 e.stopPropagation();
                 this.uiManager.hideTaskModal();
             });
-        } else {
-            console.error('taskModalClose element not found');
         }
 
         if (cancelBtn) {
             cancelBtn.addEventListener('click', (e) => {
-                console.log('Cancel button clicked');
                 e.preventDefault();
                 e.stopPropagation();
                 this.uiManager.hideTaskModal();
             });
-        } else {
-            console.error('taskModalCancel element not found');
         }
 
         // モーダル外クリック
         if (modal) {
             modal.addEventListener('click', (e) => {
                 if (e.target === e.currentTarget) {
-                    console.log('Modal backdrop clicked');
                     this.uiManager.hideTaskModal();
                 }
             });
-        } else {
-            console.error('taskModal element not found');
         }
     }
 
@@ -152,8 +143,6 @@ class EventManager {
     }
 
     bindTaskEventDelegation() {
-        console.log('Setting up task event delegation');
-        
         // タスクリストコンテナにイベント委譲を設定
         const tasksList = document.getElementById('tasksList');
         const recentTasks = document.getElementById('recentTasks');
@@ -167,8 +156,6 @@ class EventManager {
             newTasksList.addEventListener('click', (e) => {
                 this.handleTaskListClick(e);
             });
-            
-            console.log('Event delegation setup for tasksList');
         }
         
         if (recentTasks) {
@@ -180,8 +167,6 @@ class EventManager {
             newRecentTasks.addEventListener('click', (e) => {
                 this.handleTaskListClick(e);
             });
-            
-            console.log('Event delegation setup for recentTasks');
         }
     }
 
@@ -193,7 +178,6 @@ class EventManager {
             const taskItem = e.target.closest('.task-item');
             if (taskItem) {
                 const taskId = taskItem.id.replace('task-', '');
-                console.log('Checkbox clicked via delegation for task:', taskId);
                 this.handleTaskToggle(taskId);
             }
             return;
@@ -204,7 +188,6 @@ class EventManager {
             const taskItem = e.target.closest('.task-item');
             if (taskItem) {
                 const taskId = taskItem.id.replace('task-', '');
-                console.log('Edit button clicked via delegation for task:', taskId);
                 const task = this.taskManager.getTasks().find(t => (t._id === taskId || t.id === taskId));
                 if (task) {
                     this.handleTaskEdit(task);
@@ -220,7 +203,6 @@ class EventManager {
             const taskItem = e.target.closest('.task-item');
             if (taskItem) {
                 const taskId = taskItem.id.replace('task-', '');
-                console.log('Delete button clicked via delegation for task:', taskId);
                 this.handleTaskDelete(taskId);
             }
             return;
@@ -325,23 +307,15 @@ class EventManager {
 
     async handleDashboardLoad() {
         try {
-            console.log('EventManager.handleDashboardLoad: Starting dashboard load...');
-            
             const [stats, recentTasks] = await Promise.all([
                 this.taskManager.loadStats(),
                 this.taskManager.loadRecentTasks(),
                 this.taskManager.ensureUsersIncludeCurrentUser() // ユーザー情報も同時に読み込み
             ]);
             
-            console.log('EventManager.handleDashboardLoad: Loaded data:', {
-                stats: stats,
-                recentTasksCount: recentTasks?.length || 0
-            });
-            
             this.uiManager.updateStatsDisplay(stats);
             this.uiManager.renderRecentTasks(recentTasks);
             
-            console.log('EventManager.handleDashboardLoad: Dashboard load completed');
         } catch (error) {
             console.error('Error loading dashboard:', error);
         }
@@ -405,17 +379,6 @@ class EventManager {
             // 依存関係の取得
             const dependenciesSelect = document.getElementById('taskDependencies');
             const dependencies = Array.from(dependenciesSelect.selectedOptions).map(option => option.value);
-            
-            console.log('Submitting task:', {
-                title,
-                description,
-                priority,
-                startDate,
-                dueDate,
-                assignedToUserId,
-                dependencies,
-                isEdit: !!this.taskManager.getCurrentEditingTask()
-            });
             
             if (!title) {
                 this.notificationManager.show('error', 'エラー', 'タイトルを入力してください');
@@ -507,8 +470,6 @@ class EventManager {
 
     initializeCalendarAndGantt() {
         try {
-            console.log('Initializing Calendar and Gantt managers...');
-            
             // CalendarManagerの初期化
             this.calendarManager = new CalendarManager(this.taskManager, this.notificationManager);
             this.calendarManager.init();
@@ -517,7 +478,6 @@ class EventManager {
             this.ganttManager = new GanttManager(this.taskManager, this.notificationManager);
             this.ganttManager.init();
             
-            console.log('Calendar and Gantt managers initialized successfully');
         } catch (error) {
             console.error('Error initializing Calendar and Gantt managers:', error);
         }

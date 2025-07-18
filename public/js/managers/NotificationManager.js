@@ -1,8 +1,6 @@
 class NotificationManager {
     constructor() {
         this.container = document.getElementById('notifications');
-        console.log('NotificationManager initialized, container:', this.container);
-        
         // もしコンテナが見つからない場合は、動的に作成
         if (!this.container) {
             console.warn('notifications container not found, creating dynamically');
@@ -14,8 +12,6 @@ class NotificationManager {
     }
 
     show(type, title, message) {
-        console.log('NotificationManager.show called:', type, title, message);
-        
         if (!this.container) {
             console.error('Notification container not found');
             return;
@@ -37,10 +33,8 @@ class NotificationManager {
                 <i class="fas fa-times"></i>
             </button>
         `;
-        
-        console.log('Notification element created:', notification);
+
         this.container.appendChild(notification);
-        console.log('Notification added to container, container children:', this.container.children.length);
         
         // 閉じるボタン
         notification.querySelector('.notification-close').addEventListener('click', () => {
@@ -68,7 +62,6 @@ class NotificationManager {
 
     // テスト用のメソッド
     test() {
-        console.log('Testing notification system...');
         this.show('success', 'テスト', 'テスト通知が表示されています');
         setTimeout(() => {
             this.show('error', 'エラーテスト', 'エラー通知のテストです');

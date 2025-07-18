@@ -349,13 +349,6 @@ function handleUpdateTask(payload) {
   // updatedAtを追加
   updates.updatedAt = new Date().toISOString();
 
-  console.log('Update Task Debug:', {
-    id: id,
-    updates: updates,
-    headers: headers,
-    originalValues: taskValues
-  });
-
   // 特定のフィールドのみを更新対象として許可
   const allowedFields = ['title', 'description', 'priority', 'startDate', 'dueDate', 'assignedTo', 'status', 'dependencies', 'createdAt', 'updatedAt'];
   const safeUpdates = {};
@@ -389,14 +382,6 @@ function handleUpdateTask(payload) {
     return taskValues[i];
   });
 
-  console.log('Headers:', headers);
-  console.log('New values to write:', newValues);
-  
-  // 各フィールドの対応を確認
-  headers.forEach((header, i) => {
-    console.log(`Column ${i}: ${header} = ${newValues[i]}`);
-  });
-
   taskData.setValues([newValues]);
   
   const updatedTask = {};
@@ -409,7 +394,6 @@ function handleUpdateTask(payload) {
     }
   });
 
-  console.log('Updated task result:', updatedTask);
   return updatedTask;
 }
 

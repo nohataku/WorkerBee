@@ -105,17 +105,12 @@ router.post('/login', [
         }
 
         const { email, password } = req.body;
-        console.log('🔍 Debug - Login request:', { email, passwordLength: password?.length });
-
         // フロントエンドから既にハッシュ化されたパスワードを受信して認証
         const authResult = await gasService.login(email, password);
-        console.log('🔍 Debug - GAS auth result:', authResult);
         const user = authResult.user;
-        console.log('🔍 Debug - User from auth result:', user);
 
         // JWTトークン生成
         const token = generateToken(user.id);
-        console.log('🔍 Debug - Generated token:', token ? 'Token generated' : 'No token');
 
         const responseData = {
             success: true,
@@ -125,7 +120,6 @@ router.post('/login', [
                 token
             }
         };
-        console.log('🔍 Debug - Sending response:', JSON.stringify(responseData, null, 2));
 
         res.json(responseData);
 
